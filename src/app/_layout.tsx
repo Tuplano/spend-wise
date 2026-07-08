@@ -1,19 +1,55 @@
 import { useMigrations } from 'drizzle-orm/expo-sqlite/migrator';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { db } from '@/db/client';
 import { seedIfEmpty } from '@/db/seed';
 import { useEffectiveScheme } from '@/hooks/use-theme-colors';
+import { useCurrencyStore } from '@/stores/currency-store';
+import { useProfileStore } from '@/stores/profile-store';
+import { useThemeStore } from '@/stores/theme-store';
 import migrations from '../../drizzle/migrations';
 
 SplashScreen.preventAutoHideAsync();
 
+function arePersistedStoresHydrated() {
+  return (
+    useCurrencyStore.persist.hasHydrated() &&
+    useThemeStore.persist.hasHydrated() &&
+    useProfileStore.persist.hasHydrated()
+  );
+}
+
+/**
+ * Persisted zustand stores rehydrate from the SQLite-backed kv-store asynchronously, on a
+ * separate connection from the app's main DB migrations. Without this gate, a store write
+ * (e.g. changing currency) made before rehydration resolves gets silently overwritten by the
+ * stale persisted value once it lands.
+ */
+function usePersistedStoresReady() {
+  const [ready, setReady] = useState(arePersistedStoresHydrated);
+
+  useEffect(() => {
+    if (ready) return;
+    const recheck = () => setReady(arePersistedStoresHydrated());
+    const unsubscribes = [
+      useCurrencyStore.persist.onFinishHydration(recheck),
+      useThemeStore.persist.onFinishHydration(recheck),
+      useProfileStore.persist.onFinishHydration(recheck),
+    ];
+    recheck();
+    return () => unsubscribes.forEach((unsubscribe) => unsubscribe());
+  }, [ready]);
+
+  return ready;
+}
+
 export default function RootLayout() {
   const colorScheme = useEffectiveScheme();
   const { success, error } = useMigrations(db, migrations);
+  const storesReady = usePersistedStoresReady();
 
   useEffect(() => {
     if (success) {
@@ -25,7 +61,7 @@ export default function RootLayout() {
     throw error;
   }
 
-  if (!success) {
+  if (!success || !storesReady) {
     return null;
   }
 

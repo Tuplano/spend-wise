@@ -24,6 +24,7 @@ export default function AddAccountScreen() {
   const editing = useMemo(() => allAccounts.find((a) => a.id === accountId) ?? null, [allAccounts, accountId]);
 
   const [name, setName] = useState(editing?.name ?? '');
+  const [accountNumber, setAccountNumber] = useState(editing?.accountNumber ?? '');
   const [typeId, setTypeId] = useState<number | null>(editing?.typeId ?? null);
   const [color, setColor] = useState(editing?.color ?? ACCOUNT_COLOR_PRESETS[0]);
   const [error, setError] = useState<string | null>(null);
@@ -42,13 +43,18 @@ export default function AddAccountScreen() {
       return;
     }
 
+    const trimmedNumber = accountNumber.trim() || null;
+
     setSaving(true);
     try {
       if (editing) {
-        await db.update(accounts).set({ name: trimmed, typeId, color }).where(eq(accounts.id, editing.id));
+        await db
+          .update(accounts)
+          .set({ name: trimmed, typeId, color, accountNumber: trimmedNumber })
+          .where(eq(accounts.id, editing.id));
       } else {
         const sortOrder = allAccounts.reduce((max, a) => Math.max(max, a.sortOrder), 0) + 1;
-        await db.insert(accounts).values({ name: trimmed, typeId, color, sortOrder });
+        await db.insert(accounts).values({ name: trimmed, typeId, color, accountNumber: trimmedNumber, sortOrder });
       }
       router.back();
     } finally {
@@ -106,6 +112,16 @@ export default function AddAccountScreen() {
           onChangeText={setName}
           placeholder="e.g. Cash, BDO Savings"
           placeholderTextColor={colors.textPlaceholder}
+        />
+
+        <Text style={styles.sectionLabel}>Account number (optional)</Text>
+        <TextInput
+          style={styles.nameInput}
+          value={accountNumber}
+          onChangeText={setAccountNumber}
+          placeholder="e.g. last 4 digits or full number"
+          placeholderTextColor={colors.textPlaceholder}
+          keyboardType="numbers-and-punctuation"
         />
 
         <Text style={styles.sectionLabel}>Type</Text>

@@ -1,5 +1,6 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Plus, Settings2 } from 'lucide-react-native';
+import { Plus, Settings2, Wifi } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +11,28 @@ import { useAccounts } from '@/hooks/use-accounts';
 import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useTransactions } from '@/hooks/use-transactions';
+
+/** Darkens (negative percent) or lightens (positive) a hex color, for a card's gradient stop. */
+function shade(hex: string, percent: number) {
+  const num = parseInt(hex.replace('#', ''), 16);
+  const amt = Math.round(2.55 * percent);
+  const clamp = (v: number) => Math.max(0, Math.min(255, v));
+  const r = clamp((num >> 16) + amt);
+  const g = clamp(((num >> 8) & 0x00ff) + amt);
+  const b = clamp((num & 0x0000ff) + amt);
+  return `#${(0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1)}`;
+}
+
+/** A stable, card-number-looking 4-digit group derived from the account id. */
+function pseudoDigits(id: number) {
+  return String(((id * 9973) % 9000) + 1000);
+}
+
+/** The last 4 digits to show masked on the card: the real account number if set, else a stable placeholder. */
+function cardDigits(a: { id: number; accountNumber: string | null }) {
+  const digitsOnly = a.accountNumber?.replace(/\D/g, '') ?? '';
+  return digitsOnly ? digitsOnly.slice(-4).padStart(4, '0') : pseudoDigits(a.id);
+}
 
 export default function AccountsScreen() {
   const colors = useThemeColors();
@@ -59,22 +82,40 @@ export default function AccountsScreen() {
               style={styles.cardScroll}>
               {accounts.map((a) => {
                 const balance = balanceByAccount.get(a.id) ?? 0;
+                const Icon = ACCOUNT_TYPE_ICONS[a.typeIcon as AccountTypeIconKey];
                 return (
-                  <View key={a.id} style={[styles.accountCard, { backgroundColor: a.color }]}>
-                    <View style={styles.accountCardIcon}>
-                      <CategoryIcon
-                        icon={ACCOUNT_TYPE_ICONS[a.typeIcon as AccountTypeIconKey]}
-                        color="#ffffff"
-                        bgColor="rgba(255,255,255,0.2)"
-                        size={36}
-                      />
+                  <LinearGradient
+                    key={a.id}
+                    colors={[shade(a.color, 12), a.color, shade(a.color, -22)]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.accountCard}>
+                    <View style={styles.accountCardSheen} pointerEvents="none" />
+
+                    <View style={styles.accountCardTopRow}>
+                      <View style={styles.chip}>
+                        <View style={styles.chipLine} />
+                        <View style={[styles.chipLine, { width: '55%' }]} />
+                      </View>
+                      <Wifi size={20} color="rgba(255,255,255,0.85)" strokeWidth={2.2} style={styles.contactless} />
                     </View>
-                    <Text style={styles.accountCardName} numberOfLines={1}>
-                      {a.name}
+
+                    <Text style={styles.accountCardNumber}>
+                      •••• &nbsp;•••• &nbsp;•••• &nbsp;{cardDigits(a)}
                     </Text>
-                    <Text style={styles.accountCardType}>{a.typeName}</Text>
+
+                    <View style={styles.accountCardBottomRow}>
+                      <View style={styles.accountCardIdentity}>
+                        <Text style={styles.accountCardName} numberOfLines={1}>
+                          {a.name}
+                        </Text>
+                        <Text style={styles.accountCardType}>{a.typeName}</Text>
+                      </View>
+                      <Icon size={22} color="rgba(255,255,255,0.9)" strokeWidth={2} />
+                    </View>
+
                     <Text style={styles.accountCardBalance}>{formatCents(balance)}</Text>
-                  </View>
+                  </LinearGradient>
                 );
               })}
               <Pressable style={styles.addCard} onPress={() => router.push('/add-account')}>
@@ -167,18 +208,63 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       gap: 12,
     },
     accountCard: {
-      width: 168,
-      borderRadius: 22,
-      padding: 18,
+      width: 264,
+      height: 162,
+      borderRadius: 20,
+      padding: 20,
       justifyContent: 'space-between',
+      overflow: 'hidden',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.16,
+      shadowOpacity: 0.2,
       shadowRadius: 20,
       elevation: 4,
     },
-    accountCardIcon: {
-      marginBottom: 22,
+    accountCardSheen: {
+      position: 'absolute',
+      top: -60,
+      right: -50,
+      width: 160,
+      height: 160,
+      borderRadius: 80,
+      backgroundColor: 'rgba(255,255,255,0.12)',
+    },
+    accountCardTopRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+    },
+    chip: {
+      width: 34,
+      height: 25,
+      borderRadius: 6,
+      backgroundColor: 'rgba(255,255,255,0.35)',
+      padding: 5,
+      justifyContent: 'space-between',
+    },
+    chipLine: {
+      width: '100%',
+      height: 2,
+      borderRadius: 1,
+      backgroundColor: 'rgba(255,255,255,0.75)',
+    },
+    contactless: {
+      transform: [{ rotate: '90deg' }],
+      marginTop: 4,
+    },
+    accountCardNumber: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: 'rgba(255,255,255,0.92)',
+      letterSpacing: 1.5,
+    },
+    accountCardBottomRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+    },
+    accountCardIdentity: {
+      flexShrink: 1,
     },
     accountCardName: {
       fontSize: 14.5,
@@ -186,21 +272,23 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       color: '#ffffff',
     },
     accountCardType: {
-      fontSize: 11.5,
+      fontSize: 11,
       fontWeight: '600',
       color: 'rgba(255,255,255,0.75)',
       marginTop: 1,
-      marginBottom: 14,
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
     },
     accountCardBalance: {
-      fontSize: 18,
+      fontSize: 20,
       fontWeight: '800',
       color: '#ffffff',
       letterSpacing: -0.3,
     },
     addCard: {
       width: 120,
-      borderRadius: 22,
+      height: 162,
+      borderRadius: 20,
       borderWidth: 1.5,
       borderColor: colors.borderMuted,
       borderStyle: 'dashed',

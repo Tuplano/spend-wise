@@ -9,5 +9,6 @@ export const accounts = sqliteTable('accounts', {
     .notNull()
     .references(() => accountTypes.id),
   color: text('color').notNull(),
+  accountNumber: text('account_number'),
   sortOrder: integer('sort_order').notNull().default(0),
 });
