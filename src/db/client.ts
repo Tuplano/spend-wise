@@ -3,5 +3,5 @@ import { openDatabaseSync } from 'expo-sqlite';
 
 import * as schema from '@/db/schema';
 
-export const expoDb = openDatabaseSync('budgetwise.db');
+export const expoDb = openDatabaseSync('budgetwise.db', { enableChangeListener: true });
 export const db = drizzle(expoDb, { schema });
