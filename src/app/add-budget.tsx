@@ -85,7 +85,7 @@ export default function AddBudgetScreen() {
 
             <Text style={styles.sectionLabel}>Monthly limit</Text>
             <View style={styles.amountRow}>
-              <Text style={styles.amountSign}>$</Text>
+              <Text style={styles.amountSign}>₱</Text>
               <TextInput
                 style={styles.amountInput}
                 value={limitText}

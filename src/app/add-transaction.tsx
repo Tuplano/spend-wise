@@ -85,7 +85,7 @@ export default function AddTransactionScreen() {
         <View style={styles.amountSection}>
           <Text style={styles.amountLabel}>Amount</Text>
           <View style={styles.amountRow}>
-            <Text style={styles.amountSign}>$</Text>
+            <Text style={styles.amountSign}>₱</Text>
             <TextInput
               style={styles.amountInput}
               value={amountText}

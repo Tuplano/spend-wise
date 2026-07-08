@@ -1,6 +1,8 @@
-const currencyFormatter = new Intl.NumberFormat('en-US', {
+const CURRENCY_SYMBOL = '₱';
+
+const currencyFormatter = new Intl.NumberFormat('en-PH', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'PHP',
 });
 
 export function formatCents(cents: number) {
@@ -13,9 +15,9 @@ export function formatSignedCents(cents: number, kind: 'income' | 'expense') {
 }
 
 export function formatCompactCents(cents: number) {
-  const dollars = cents / 100;
-  if (Math.abs(dollars) >= 1000) {
-    return `$${(dollars / 1000).toFixed(dollars % 1000 === 0 ? 0 : 2)}k`;
+  const pesos = cents / 100;
+  if (Math.abs(pesos) >= 1000) {
+    return `${CURRENCY_SYMBOL}${(pesos / 1000).toFixed(pesos % 1000 === 0 ? 0 : 2)}k`;
   }
   return formatCents(cents);
 }
