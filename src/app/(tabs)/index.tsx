@@ -1,5 +1,4 @@
 import { router } from 'expo-router';
-import { Settings } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,12 +8,10 @@ import { ProgressBar } from '@/components/budget/progress-bar';
 import { TransactionRow } from '@/components/budget/transaction-row';
 import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
 import { useBudgets } from '@/hooks/use-budgets';
+import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useTransactions } from '@/hooks/use-transactions';
 import { formatTime, monthKey, monthLabel, monthRange } from '@/lib/date';
-import { formatCents } from '@/lib/format';
-
-const DEMO_USER_NAME = 'Alex Kim';
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -28,6 +25,7 @@ export default function DashboardScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const transactions = useTransactions();
   const budgets = useBudgets();
+  const { formatCents } = useDisplayMoney();
 
   const currentMonthKey = monthKey(new Date());
   const { start, end } = monthRange(currentMonthKey);
@@ -48,26 +46,12 @@ export default function DashboardScreen() {
   const budgetProgress = monthBudgetLimit > 0 ? monthSpent / monthBudgetLimit : 0;
 
   const recent = transactions.slice(0, 4);
-  const initials = DEMO_USER_NAME.split(' ')
-    .map((w) => w[0])
-    .join('');
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.greeting}>{getGreeting()}</Text>
-            <Text style={styles.name}>{DEMO_USER_NAME}</Text>
-          </View>
-          <View style={styles.headerActions}>
-            <Pressable style={styles.settingsButton} onPress={() => router.push('/settings')}>
-              <Settings size={19} color={colors.text} strokeWidth={2} />
-            </Pressable>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
-            </View>
-          </View>
+          <Text style={styles.greeting}>{getGreeting()}</Text>
         </View>
 
         <View style={styles.balanceSpacing}>
@@ -126,47 +110,12 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
       marginBottom: 22,
     },
-    headerActions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-    },
-    settingsButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
     greeting: {
-      fontSize: 13,
-      color: colors.textSecondary,
-      fontWeight: '600',
-    },
-    name: {
       fontSize: 20,
       color: colors.text,
       fontWeight: '800',
-      marginTop: 2,
-    },
-    avatar: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: colors.accentSoft,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    avatarText: {
-      fontSize: 15,
-      fontWeight: '800',
-      color: colors.accent,
     },
     balanceSpacing: {
       marginBottom: 18,

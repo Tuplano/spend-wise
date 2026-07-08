@@ -37,7 +37,6 @@ export default function RootLayout() {
         <Stack.Screen name="add-transaction" options={{ presentation: 'modal' }} />
         <Stack.Screen name="edit-transaction" options={{ presentation: 'modal' }} />
         <Stack.Screen name="add-budget" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
         <Stack.Screen name="manage-categories" options={{ presentation: 'modal' }} />
         <Stack.Screen name="add-category" options={{ presentation: 'modal' }} />
         <Stack.Screen name="manage-accounts" options={{ presentation: 'modal' }} />

@@ -6,10 +6,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DonutChart } from '@/components/budget/donut-chart';
 import { MonthPicker } from '@/components/budget/month-picker';
 import { WeeklyBarChart } from '@/components/budget/weekly-bar-chart';
+import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useTransactions } from '@/hooks/use-transactions';
 import { monthLabel, monthRange, shiftMonthKey, weekOfMonthIndex } from '@/lib/date';
-import { formatCents, formatCompactCents } from '@/lib/format';
 import { useMonthStore } from '@/stores/month-store';
 
 export default function InsightsScreen() {
@@ -17,6 +17,7 @@ export default function InsightsScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const transactions = useTransactions();
   const selectedMonthKey = useMonthStore((s) => s.selectedMonthKey);
+  const { formatCents, formatCompactCents } = useDisplayMoney();
 
   const { start, end } = monthRange(selectedMonthKey);
   const monthExpenses = transactions.filter(

@@ -1,23 +1,27 @@
-const CURRENCY_SYMBOL = '₱';
+import { currencyOption, type CurrencyCode } from '@/lib/money/currency';
 
-const currencyFormatter = new Intl.NumberFormat('en-PH', {
-  style: 'currency',
-  currency: 'PHP',
-});
-
-export function formatCents(cents: number) {
-  return currencyFormatter.format(cents / 100);
+function formatterFor(currency: CurrencyCode) {
+  const option = currencyOption(currency);
+  return new Intl.NumberFormat(option.locale, {
+    style: 'currency',
+    currency: option.code,
+  });
 }
 
-export function formatSignedCents(cents: number, kind: 'income' | 'expense') {
-  const amount = formatCents(Math.abs(cents));
+export function formatCents(cents: number, currency: CurrencyCode = 'PHP') {
+  return formatterFor(currency).format(cents / 100);
+}
+
+export function formatSignedCents(cents: number, kind: 'income' | 'expense', currency: CurrencyCode = 'PHP') {
+  const amount = formatCents(Math.abs(cents), currency);
   return kind === 'income' ? `+${amount}` : `-${amount}`;
 }
 
-export function formatCompactCents(cents: number) {
-  const pesos = cents / 100;
-  if (Math.abs(pesos) >= 1000) {
-    return `${CURRENCY_SYMBOL}${(pesos / 1000).toFixed(pesos % 1000 === 0 ? 0 : 2)}k`;
+export function formatCompactCents(cents: number, currency: CurrencyCode = 'PHP') {
+  const value = cents / 100;
+  if (Math.abs(value) >= 1000) {
+    const symbol = currencyOption(currency).symbol;
+    return `${symbol}${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 2)}k`;
   }
-  return formatCents(cents);
+  return formatCents(cents, currency);
 }

@@ -12,18 +12,26 @@ import { db } from '@/db/client';
 import { transactions } from '@/db/schema';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useCategories } from '@/hooks/use-categories';
+import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { currencyOption } from '@/lib/money/currency';
+import { BASE_CURRENCY } from '@/lib/money/exchange-rates';
 
 const transactionSchema = z.object({
   categoryId: z.number({ error: 'Pick a category' }),
   amount: z.number().positive('Enter an amount'),
 });
 
+// Transactions are always entered/stored in BASE_CURRENCY — the display currency in Settings
+// only affects how amounts are shown elsewhere, via a live conversion.
+const baseCurrencySymbol = currencyOption(BASE_CURRENCY).symbol;
+
 export default function AddTransactionScreen() {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const categories = useCategories();
   const accounts = useAccounts();
+  const { isConverted, currency } = useDisplayMoney();
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
   const [amountText, setAmountText] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
@@ -94,7 +102,7 @@ export default function AddTransactionScreen() {
         <View style={styles.amountSection}>
           <Text style={styles.amountLabel}>Amount</Text>
           <View style={styles.amountRow}>
-            <Text style={styles.amountSign}>₱</Text>
+            <Text style={styles.amountSign}>{baseCurrencySymbol}</Text>
             <TextInput
               style={styles.amountInput}
               value={amountText}
@@ -104,6 +112,11 @@ export default function AddTransactionScreen() {
               keyboardType="decimal-pad"
             />
           </View>
+          {isConverted && (
+            <Text style={styles.baseCurrencyHint}>
+              Entered and stored in {BASE_CURRENCY}. Your {currency} display converts amounts elsewhere.
+            </Text>
+          )}
         </View>
 
         <Text style={styles.sectionLabel}>Category</Text>
@@ -243,6 +256,14 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       fontWeight: '700',
       marginTop: 8,
       color: colors.textSecondary,
+    },
+    baseCurrencyHint: {
+      fontSize: 11.5,
+      color: colors.textMuted,
+      fontWeight: '600',
+      textAlign: 'center',
+      marginTop: 10,
+      paddingHorizontal: 12,
     },
     amountInput: {
       fontSize: 48,

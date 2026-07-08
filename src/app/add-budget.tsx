@@ -10,8 +10,15 @@ import { db } from '@/db/client';
 import { budgets } from '@/db/schema';
 import { useBudgets } from '@/hooks/use-budgets';
 import { useCategories } from '@/hooks/use-categories';
+import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { currencyOption } from '@/lib/money/currency';
+import { BASE_CURRENCY } from '@/lib/money/exchange-rates';
 import { useMonthStore } from '@/stores/month-store';
+
+// Budgets are always entered/stored in BASE_CURRENCY — the display currency in Settings
+// only affects how amounts are shown elsewhere, via a live conversion.
+const baseCurrencySymbol = currencyOption(BASE_CURRENCY).symbol;
 
 export default function AddBudgetScreen() {
   const colors = useThemeColors();
@@ -19,6 +26,7 @@ export default function AddBudgetScreen() {
   const categories = useCategories();
   const allBudgets = useBudgets();
   const selectedMonthKey = useMonthStore((s) => s.selectedMonthKey);
+  const { isConverted, currency } = useDisplayMoney();
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [limitText, setLimitText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +96,7 @@ export default function AddBudgetScreen() {
 
             <Text style={styles.sectionLabel}>Monthly limit</Text>
             <View style={styles.amountRow}>
-              <Text style={styles.amountSign}>₱</Text>
+              <Text style={styles.amountSign}>{baseCurrencySymbol}</Text>
               <TextInput
                 style={styles.amountInput}
                 value={limitText}
@@ -98,6 +106,11 @@ export default function AddBudgetScreen() {
                 keyboardType="decimal-pad"
               />
             </View>
+            {isConverted && (
+              <Text style={styles.baseCurrencyHint}>
+                Entered and stored in {BASE_CURRENCY}. Your {currency} display converts amounts elsewhere.
+              </Text>
+            )}
 
             {error && <Text style={styles.errorText}>{error}</Text>}
 
@@ -177,6 +190,15 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       fontWeight: '700',
       marginTop: 8,
       color: colors.textSecondary,
+    },
+    baseCurrencyHint: {
+      fontSize: 11.5,
+      color: colors.textMuted,
+      fontWeight: '600',
+      textAlign: 'center',
+      marginTop: -14,
+      marginBottom: 24,
+      paddingHorizontal: 12,
     },
     amountInput: {
       fontSize: 40,

@@ -1,11 +1,26 @@
-import { router } from 'expo-router';
-import { TabList, Tabs, TabSlot, TabTrigger, type TabTriggerSlotProps } from 'expo-router/ui';
-import { BarChart3, Home, Plus, Receipt, Target, type LucideIcon } from 'lucide-react-native';
-import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from "expo-router";
+import {
+  TabList,
+  Tabs,
+  TabSlot,
+  TabTrigger,
+  type TabTriggerSlotProps,
+} from "expo-router/ui";
+import {
+  BarChart3,
+  Home,
+  Plus,
+  Receipt,
+  Settings,
+  Target,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react-native";
+import { useMemo } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useThemeColors } from '@/hooks/use-theme-colors';
+import { useThemeColors } from "@/hooks/use-theme-colors";
 
 function TabIcon({
   icon: Icon,
@@ -18,8 +33,16 @@ function TabIcon({
   const color = isFocused ? colors.accent : colors.tabInactive;
   return (
     <Pressable {...props} style={styles.tabItem}>
-      <Icon size={23} color={color} strokeWidth={1.9} />
-      <Text style={[styles.tabLabel, { color, fontWeight: isFocused ? '700' : '600' }]}>{label}</Text>
+      <Icon size={20} color={color} strokeWidth={1.9} />
+      <Text
+        style={[
+          styles.tabLabel,
+          { color, fontWeight: isFocused ? "700" : "600" },
+        ]}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
@@ -33,23 +56,37 @@ export default function TabsLayout() {
     <Tabs>
       <TabSlot />
       <TabList asChild>
-        <View style={StyleSheet.flatten([styles.bar, { paddingBottom: Math.max(insets.bottom, 10) }])}>
+        <View
+          style={StyleSheet.flatten([
+            styles.bar,
+            { paddingBottom: Math.max(insets.bottom, 10) },
+          ])}
+        >
           <TabTrigger name="index" href="/" asChild>
             <TabIcon icon={Home} label="Home" />
           </TabTrigger>
           <TabTrigger name="activity" href="/activity" asChild>
             <TabIcon icon={Receipt} label="Activity" />
           </TabTrigger>
-          <View style={styles.fabSlot}>
-            <Pressable style={styles.fab} onPress={() => router.push('/add-transaction')}>
-              <Plus size={26} color={colors.textOnAccent} strokeWidth={2.4} />
-            </Pressable>
-          </View>
           <TabTrigger name="budgets" href="/budgets" asChild>
             <TabIcon icon={Target} label="Budgets" />
           </TabTrigger>
+          <View style={styles.fabSlot}>
+            <Pressable
+              style={styles.fab}
+              onPress={() => router.push("/add-transaction")}
+            >
+              <Plus size={26} color={colors.textOnAccent} strokeWidth={2.4} />
+            </Pressable>
+          </View>
+          <TabTrigger name="accounts" href="/accounts" asChild>
+            <TabIcon icon={Wallet} label="Accounts" />
+          </TabTrigger>
           <TabTrigger name="insights" href="/insights" asChild>
             <TabIcon icon={BarChart3} label="Insights" />
+          </TabTrigger>
+          <TabTrigger name="settings" href="/settings" asChild>
+            <TabIcon icon={Settings} label="Settings" />
           </TabTrigger>
         </View>
       </TabList>
@@ -60,8 +97,8 @@ export default function TabsLayout() {
 function createStyles(colors: ReturnType<typeof useThemeColors>) {
   return StyleSheet.create({
     bar: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       backgroundColor: colors.surface,
       borderTopWidth: 1,
       borderTopColor: colors.track,
@@ -69,25 +106,26 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
     },
     tabItem: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 4,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 3,
+      paddingHorizontal: 2,
     },
     tabLabel: {
-      fontSize: 10,
+      fontSize: 9,
     },
     fabSlot: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     fab: {
       width: 54,
       height: 54,
       borderRadius: 18,
       backgroundColor: colors.accent,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       transform: [{ translateY: -16 }],
       shadowColor: colors.accent,
       shadowOffset: { width: 0, height: 10 },

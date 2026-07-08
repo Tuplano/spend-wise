@@ -7,10 +7,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MonthPicker } from '@/components/budget/month-picker';
 import { TransactionRow } from '@/components/budget/transaction-row';
 import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
+import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useTransactions } from '@/hooks/use-transactions';
 import { dayLabel, formatTime, monthLabel, monthRange } from '@/lib/date';
-import { formatCents } from '@/lib/format';
 import { useMonthStore } from '@/stores/month-store';
 
 type Filter = 'all' | 'income' | 'expense';
@@ -26,6 +26,7 @@ export default function ActivityScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const transactions = useTransactions();
   const selectedMonthKey = useMonthStore((s) => s.selectedMonthKey);
+  const { formatCents } = useDisplayMoney();
   const [filter, setFilter] = useState<Filter>('all');
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');

@@ -2,8 +2,8 @@ import { TrendingDown, TrendingUp } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
-import { formatCents } from '@/lib/format';
 
 type BalanceCardProps = {
   balance: number;
@@ -14,6 +14,7 @@ type BalanceCardProps = {
 export function BalanceCard({ balance, income, spent }: BalanceCardProps) {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { formatCents } = useDisplayMoney();
 
   return (
     <View style={styles.card}>

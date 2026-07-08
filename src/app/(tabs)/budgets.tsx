@@ -12,10 +12,10 @@ import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
 import { db } from '@/db/client';
 import { budgets as budgetsTable } from '@/db/schema';
 import { useBudgets } from '@/hooks/use-budgets';
+import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useTransactions } from '@/hooks/use-transactions';
 import { monthRange } from '@/lib/date';
-import { formatCents } from '@/lib/format';
 import { useMonthStore } from '@/stores/month-store';
 
 export default function BudgetsScreen() {
@@ -24,6 +24,7 @@ export default function BudgetsScreen() {
   const allBudgets = useBudgets();
   const transactions = useTransactions();
   const selectedMonthKey = useMonthStore((s) => s.selectedMonthKey);
+  const { formatCents } = useDisplayMoney();
   const [editing, setEditing] = useState(false);
 
   const { start, end } = monthRange(selectedMonthKey);
@@ -58,7 +59,9 @@ export default function BudgetsScreen() {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => db.delete(budgetsTable).where(eq(budgetsTable.id, budgetId)),
+        onPress: async () => {
+          await db.delete(budgetsTable).where(eq(budgetsTable.id, budgetId));
+        },
       },
     ]);
   }

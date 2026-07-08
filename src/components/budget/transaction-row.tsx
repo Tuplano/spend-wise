@@ -3,8 +3,8 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CategoryIcon } from '@/components/budget/category-icon';
+import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
-import { formatSignedCents } from '@/lib/format';
 
 type TransactionRowProps = {
   icon: LucideIcon;
@@ -20,6 +20,7 @@ type TransactionRowProps = {
 export function TransactionRow({ icon, color, bgColor, title, subtitle, amount, kind, onPress }: TransactionRowProps) {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { formatSignedCents } = useDisplayMoney();
 
   const content = (
     <>
