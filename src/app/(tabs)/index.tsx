@@ -1,4 +1,6 @@
 import { router } from 'expo-router';
+import { Settings } from 'lucide-react-native';
+import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,6 +9,7 @@ import { ProgressBar } from '@/components/budget/progress-bar';
 import { TransactionRow } from '@/components/budget/transaction-row';
 import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
 import { useBudgets } from '@/hooks/use-budgets';
+import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useTransactions } from '@/hooks/use-transactions';
 import { formatTime, monthKey, monthLabel, monthRange } from '@/lib/date';
 import { formatCents } from '@/lib/format';
@@ -21,6 +24,8 @@ function getGreeting() {
 }
 
 export default function DashboardScreen() {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const transactions = useTransactions();
   const budgets = useBudgets();
 
@@ -55,8 +60,13 @@ export default function DashboardScreen() {
             <Text style={styles.greeting}>{getGreeting()}</Text>
             <Text style={styles.name}>{DEMO_USER_NAME}</Text>
           </View>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials}</Text>
+          <View style={styles.headerActions}>
+            <Pressable style={styles.settingsButton} onPress={() => router.push('/settings')}>
+              <Settings size={19} color={colors.text} strokeWidth={2} />
+            </Pressable>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
           </View>
         </View>
 
@@ -69,7 +79,7 @@ export default function DashboardScreen() {
             <Text style={styles.budgetTitle}>{monthLabel(currentMonthKey)} budget</Text>
             <Text style={styles.budgetLeft}>{formatCents(Math.max(budgetLeft, 0))} left</Text>
           </View>
-          <ProgressBar progress={budgetProgress} color="#2f6bed" />
+          <ProgressBar progress={budgetProgress} color={colors.accent} />
           <View style={styles.budgetFooter}>
             <Text style={styles.budgetFooterText}>{formatCents(monthSpent)} spent</Text>
             <Text style={styles.budgetFooterText}>{formatCents(monthBudgetLimit)} limit</Text>
@@ -103,102 +113,119 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f6f8fc',
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 22,
-  },
-  greeting: {
-    fontSize: 13,
-    color: '#8894ab',
-    fontWeight: '600',
-  },
-  name: {
-    fontSize: 20,
-    color: '#16233a',
-    fontWeight: '800',
-    marginTop: 2,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#e8effe',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#2f6bed',
-  },
-  balanceSpacing: {
-    marginBottom: 18,
-  },
-  budgetCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: '#eaeef5',
-    marginBottom: 22,
-  },
-  budgetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  budgetTitle: {
-    fontSize: 14.5,
-    fontWeight: '700',
-    color: '#16233a',
-  },
-  budgetLeft: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#2f6bed',
-  },
-  budgetFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-  budgetFooterText: {
-    fontSize: 12,
-    color: '#8894ab',
-    fontWeight: '600',
-  },
-  recentHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  recentTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#16233a',
-  },
-  seeAll: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#2f6bed',
-  },
-  emptyText: {
-    fontSize: 13,
-    color: '#8894ab',
-    paddingVertical: 20,
-    textAlign: 'center',
-  },
-});
+function createStyles(colors: ReturnType<typeof useThemeColors>) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: 20,
+      paddingBottom: 100,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 22,
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    settingsButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    greeting: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      fontWeight: '600',
+    },
+    name: {
+      fontSize: 20,
+      color: colors.text,
+      fontWeight: '800',
+      marginTop: 2,
+    },
+    avatar: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: colors.accentSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.accent,
+    },
+    balanceSpacing: {
+      marginBottom: 18,
+    },
+    budgetCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 20,
+      padding: 18,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: 22,
+    },
+    budgetHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 14,
+    },
+    budgetTitle: {
+      fontSize: 14.5,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    budgetLeft: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.accent,
+    },
+    budgetFooter: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 10,
+    },
+    budgetFooterText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: '600',
+    },
+    recentHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 4,
+    },
+    recentTitle: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    seeAll: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: colors.accent,
+    },
+    emptyText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      paddingVertical: 20,
+      textAlign: 'center',
+    },
+  });
+}

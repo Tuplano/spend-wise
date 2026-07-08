@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
+import { accounts } from './accounts';
 import { categories } from './categories';
 
 export const transactions = sqliteTable('transactions', {
@@ -8,11 +9,11 @@ export const transactions = sqliteTable('transactions', {
   categoryId: integer('category_id')
     .notNull()
     .references(() => categories.id),
+  accountId: integer('account_id').references(() => accounts.id),
   kind: text('kind', { enum: ['income', 'expense'] }).notNull(),
   amount: integer('amount').notNull(),
   merchant: text('merchant').notNull(),
   note: text('note'),
-  accountLabel: text('account_label').notNull().default('Card •• 4821'),
   occurredAt: integer('occurred_at', { mode: 'timestamp' }).notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()

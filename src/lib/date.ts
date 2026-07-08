@@ -57,6 +57,10 @@ export function formatTime(date: Date) {
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 }
 
+export function formatDate(date: Date) {
+  return `${MONTH_NAMES[date.getMonth()].slice(0, 3)} ${date.getDate()}, ${date.getFullYear()}`;
+}
+
 export function weekOfMonthIndex(date: Date) {
   return Math.floor((date.getDate() - 1) / 7);
 }

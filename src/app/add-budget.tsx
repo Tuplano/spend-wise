@@ -10,9 +10,12 @@ import { db } from '@/db/client';
 import { budgets } from '@/db/schema';
 import { useBudgets } from '@/hooks/use-budgets';
 import { useCategories } from '@/hooks/use-categories';
+import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useMonthStore } from '@/stores/month-store';
 
 export default function AddBudgetScreen() {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const categories = useCategories();
   const allBudgets = useBudgets();
   const selectedMonthKey = useMonthStore((s) => s.selectedMonthKey);
@@ -53,7 +56,7 @@ export default function AddBudgetScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.headerRow}>
           <Pressable style={styles.backButton} onPress={() => router.back()}>
-            <ChevronLeft size={19} color="#16233a" strokeWidth={2.1} />
+            <ChevronLeft size={19} color={colors.text} strokeWidth={2.1} />
           </Pressable>
           <Text style={styles.headerTitle}>Add budget</Text>
         </View>
@@ -91,7 +94,7 @@ export default function AddBudgetScreen() {
                 value={limitText}
                 onChangeText={setLimitText}
                 placeholder="0"
-                placeholderTextColor="#c2cad8"
+                placeholderTextColor={colors.textPlaceholder}
                 keyboardType="decimal-pad"
               />
             </View>
@@ -108,111 +111,113 @@ export default function AddBudgetScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f6f8fc',
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    marginBottom: 24,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#eaeef5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#16233a',
-  },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#16233a',
-    marginBottom: 12,
-  },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
-  },
-  categoryItem: {
-    width: '21%',
-    alignItems: 'center',
-    gap: 6,
-  },
-  categoryLabel: {
-    fontSize: 10.5,
-    fontWeight: '600',
-    color: '#6b7891',
-    textAlign: 'center',
-  },
-  amountRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    gap: 4,
-    marginBottom: 24,
-  },
-  amountSign: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginTop: 8,
-    color: '#8894ab',
-  },
-  amountInput: {
-    fontSize: 40,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    color: '#16233a',
-    minWidth: 100,
-    textAlign: 'center',
-    padding: 0,
-  },
-  errorText: {
-    color: '#e5484d',
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  saveButton: {
-    backgroundColor: '#2f6bed',
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    shadowColor: '#2f6bed',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 6,
-  },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  emptyText: {
-    fontSize: 13,
-    color: '#8894ab',
-    textAlign: 'center',
-    paddingVertical: 40,
-  },
-});
+function createStyles(colors: ReturnType<typeof useThemeColors>) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: 20,
+      paddingBottom: 40,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      marginBottom: 24,
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerTitle: {
+      fontSize: 17,
+      fontWeight: '800',
+      color: colors.text,
+    },
+    sectionLabel: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.text,
+      marginBottom: 12,
+    },
+    categoryGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 12,
+      marginBottom: 24,
+    },
+    categoryItem: {
+      width: '21%',
+      alignItems: 'center',
+      gap: 6,
+    },
+    categoryLabel: {
+      fontSize: 10.5,
+      fontWeight: '600',
+      color: colors.textMuted,
+      textAlign: 'center',
+    },
+    amountRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'center',
+      gap: 4,
+      marginBottom: 24,
+    },
+    amountSign: {
+      fontSize: 22,
+      fontWeight: '700',
+      marginTop: 8,
+      color: colors.textSecondary,
+    },
+    amountInput: {
+      fontSize: 40,
+      fontWeight: '800',
+      letterSpacing: -0.5,
+      color: colors.text,
+      minWidth: 100,
+      textAlign: 'center',
+      padding: 0,
+    },
+    errorText: {
+      color: colors.danger,
+      fontSize: 13,
+      fontWeight: '600',
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    saveButton: {
+      backgroundColor: colors.accent,
+      borderRadius: 16,
+      paddingVertical: 16,
+      alignItems: 'center',
+      shadowColor: colors.accent,
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: 0.35,
+      shadowRadius: 24,
+      elevation: 6,
+    },
+    saveButtonDisabled: {
+      opacity: 0.6,
+    },
+    saveButtonText: {
+      color: colors.textOnAccent,
+      fontSize: 15,
+      fontWeight: '800',
+    },
+    emptyText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      paddingVertical: 40,
+    },
+  });
+}

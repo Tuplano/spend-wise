@@ -9,18 +9,52 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    background: '#f6f8fc',
+    surface: '#ffffff',
+    border: '#eaeef5',
+    borderSubtle: '#f0f3f8',
+    borderMuted: '#cdd6e4',
+    track: '#eef1f6',
+
+    text: '#16233a',
+    textSecondary: '#8894ab',
+    textMuted: '#6b7891',
+    textPlaceholder: '#b3bccb',
+    textOnAccent: '#ffffff',
+
+    accent: '#2f6bed',
+    accentSoft: '#e8effe',
+    danger: '#e5484d',
+    dangerSoft: '#fbe7ea',
+    success: '#2f9e6f',
+    successSoft: '#e3f4ec',
+    warning: '#d95a6a',
+
+    tabInactive: '#9aa6bd',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    background: '#0b0f16',
+    surface: '#161b24',
+    border: '#242b39',
+    borderSubtle: '#1f2530',
+    borderMuted: '#333c4d',
+    track: '#232a37',
+
+    text: '#eef1f6',
+    textSecondary: '#8b96ac',
+    textMuted: '#a1abc0',
+    textPlaceholder: '#5b6579',
+    textOnAccent: '#ffffff',
+
+    accent: '#5b8def',
+    accentSoft: '#1c2942',
+    danger: '#ef5a5f',
+    dangerSoft: '#3a1f24',
+    success: '#37b57f',
+    successSoft: '#173328',
+    warning: '#e07480',
+
+    tabInactive: '#5c6578',
   },
 } as const;
 

@@ -2,7 +2,7 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { desc, eq } from 'drizzle-orm';
 
 import { db } from '@/db/client';
-import { categories, transactions } from '@/db/schema';
+import { accounts, categories, transactions } from '@/db/schema';
 
 export type TransactionWithCategory = {
   id: number;
@@ -16,6 +16,8 @@ export type TransactionWithCategory = {
   categoryColor: string;
   categoryBgColor: string;
   categoryIcon: string;
+  accountId: number | null;
+  accountName: string | null;
 };
 
 export function useTransactions(): TransactionWithCategory[] {
@@ -33,9 +35,12 @@ export function useTransactions(): TransactionWithCategory[] {
         categoryColor: categories.color,
         categoryBgColor: categories.bgColor,
         categoryIcon: categories.icon,
+        accountId: transactions.accountId,
+        accountName: accounts.name,
       })
       .from(transactions)
       .innerJoin(categories, eq(transactions.categoryId, categories.id))
+      .leftJoin(accounts, eq(transactions.accountId, accounts.id))
       .orderBy(desc(transactions.occurredAt))
   );
 

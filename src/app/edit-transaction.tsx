@@ -1,7 +1,8 @@
-import { router } from 'expo-router';
-import { ChevronLeft, Plus } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { eq } from 'drizzle-orm';
+import { router, useLocalSearchParams } from 'expo-router';
+import { ChevronLeft, Plus, Trash2 } from 'lucide-react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
@@ -13,26 +14,48 @@ import { transactions } from '@/db/schema';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useCategories } from '@/hooks/use-categories';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { useTransactions } from '@/hooks/use-transactions';
+import { formatDate } from '@/lib/date';
 
 const transactionSchema = z.object({
   categoryId: z.number({ error: 'Pick a category' }),
   amount: z.number().positive('Enter an amount'),
 });
 
-export default function AddTransactionScreen() {
+export default function EditTransactionScreen() {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const transactionId = Number(id);
+
+  const allTransactions = useTransactions();
+  const original = useMemo(
+    () => allTransactions.find((t) => t.id === transactionId) ?? null,
+    [allTransactions, transactionId]
+  );
+
   const categories = useCategories();
   const accounts = useAccounts();
+
   const [kind, setKind] = useState<'expense' | 'income'>('expense');
   const [amountText, setAmountText] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
-  const [isYesterday, setIsYesterday] = useState(false);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const loadedRef = useRef(false);
+  useEffect(() => {
+    if (!original || loadedRef.current) return;
+    loadedRef.current = true;
+    setKind(original.kind);
+    setAmountText((original.amount / 100).toString());
+    setCategoryId(original.categoryId);
+    setAccountId(original.accountId);
+    setNote(original.merchant);
+  }, [original]);
 
   const visibleCategories = useMemo(() => categories.filter((c) => c.kind === kind), [categories, kind]);
   const selectedAccount = useMemo(() => accounts.find((a) => a.id === accountId) ?? null, [accounts, accountId]);
@@ -51,24 +74,40 @@ export default function AddTransactionScreen() {
     }
 
     const category = categories.find((c) => c.id === parsed.data.categoryId)!;
-    const occurredAt = new Date();
-    if (isYesterday) occurredAt.setDate(occurredAt.getDate() - 1);
 
     setSaving(true);
     try {
-      await db.insert(transactions).values({
-        categoryId: parsed.data.categoryId,
-        accountId,
-        kind,
-        amount: parsed.data.amount,
-        merchant: note.trim() || category.name,
-        occurredAt,
-      });
+      await db
+        .update(transactions)
+        .set({
+          categoryId: parsed.data.categoryId,
+          accountId,
+          kind,
+          amount: parsed.data.amount,
+          merchant: note.trim() || category.name,
+        })
+        .where(eq(transactions.id, transactionId));
       router.back();
     } finally {
       setSaving(false);
     }
   }
+
+  function handleDelete() {
+    Alert.alert('Delete transaction?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await db.delete(transactions).where(eq(transactions.id, transactionId));
+          router.back();
+        },
+      },
+    ]);
+  }
+
+  if (!original) return null;
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -77,7 +116,7 @@ export default function AddTransactionScreen() {
           <Pressable style={styles.backButton} onPress={() => router.back()}>
             <ChevronLeft size={19} color={colors.text} strokeWidth={2.1} />
           </Pressable>
-          <Text style={styles.headerTitle}>Add transaction</Text>
+          <Text style={styles.headerTitle}>Edit transaction</Text>
         </View>
 
         <View style={styles.segmentSpacing}>
@@ -162,10 +201,10 @@ export default function AddTransactionScreen() {
               </Pressable>
             </View>
           )}
-          <Pressable style={[styles.detailRow, styles.detailRowBorder]} onPress={() => setIsYesterday((v) => !v)}>
+          <View style={[styles.detailRow, styles.detailRowBorder]}>
             <Text style={styles.detailLabel}>Date</Text>
-            <Text style={styles.detailValue}>{isYesterday ? 'Yesterday' : 'Today'}</Text>
-          </Pressable>
+            <Text style={styles.detailValue}>{formatDate(original.occurredAt)}</Text>
+          </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Note</Text>
             <TextInput
@@ -181,7 +220,12 @@ export default function AddTransactionScreen() {
         {error && <Text style={styles.errorText}>{error}</Text>}
 
         <Pressable style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving}>
-          <Text style={styles.saveButtonText}>Save transaction</Text>
+          <Text style={styles.saveButtonText}>Save changes</Text>
+        </Pressable>
+
+        <Pressable style={styles.deleteButton} onPress={handleDelete}>
+          <Trash2 size={15} color={colors.danger} strokeWidth={2} />
+          <Text style={styles.deleteButtonText}>Delete transaction</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -364,6 +408,18 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       color: colors.textOnAccent,
       fontSize: 15,
       fontWeight: '800',
+    },
+    deleteButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: 16,
+    },
+    deleteButtonText: {
+      color: colors.danger,
+      fontSize: 13,
+      fontWeight: '700',
     },
   });
 }

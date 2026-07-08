@@ -1,5 +1,8 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, G } from 'react-native-svg';
+
+import { useThemeColors } from '@/hooks/use-theme-colors';
 
 type DonutSegment = {
   label: string;
@@ -16,6 +19,8 @@ type DonutChartProps = {
 };
 
 export function DonutChart({ data, size = 118, strokeWidth = 22, centerTopLabel, centerValue }: DonutChartProps) {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const total = data.reduce((sum, d) => sum + d.value, 0) || 1;
@@ -56,26 +61,28 @@ export function DonutChart({ data, size = 118, strokeWidth = 22, centerTopLabel,
   );
 }
 
-const styles = StyleSheet.create({
-  center: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: '-50%' }, { translateY: '-50%' }],
-  },
-  centerTop: {
-    fontSize: 10,
-    color: '#8894ab',
-    fontWeight: '600',
-  },
-  centerValue: {
-    fontSize: 15,
-    color: '#16233a',
-    fontWeight: '800',
-  },
-});
+function createStyles(colors: ReturnType<typeof useThemeColors>) {
+  return StyleSheet.create({
+    center: {
+      position: 'absolute',
+      borderRadius: 999,
+      backgroundColor: colors.surface,
+      alignItems: 'center',
+      justifyContent: 'center',
+      alignSelf: 'center',
+      top: '50%',
+      left: '50%',
+      transform: [{ translateX: '-50%' }, { translateY: '-50%' }],
+    },
+    centerTop: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      fontWeight: '600',
+    },
+    centerValue: {
+      fontSize: 15,
+      color: colors.text,
+      fontWeight: '800',
+    },
+  });
+}

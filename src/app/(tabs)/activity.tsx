@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { Search } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -6,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MonthPicker } from '@/components/budget/month-picker';
 import { TransactionRow } from '@/components/budget/transaction-row';
 import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
+import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useTransactions } from '@/hooks/use-transactions';
 import { dayLabel, formatTime, monthLabel, monthRange } from '@/lib/date';
 import { formatCents } from '@/lib/format';
@@ -20,6 +22,8 @@ const FILTERS: { label: string; value: Filter }[] = [
 ];
 
 export default function ActivityScreen() {
+  const colors = useThemeColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const transactions = useTransactions();
   const selectedMonthKey = useMonthStore((s) => s.selectedMonthKey);
   const [filter, setFilter] = useState<Filter>('all');
@@ -71,7 +75,7 @@ export default function ActivityScreen() {
             <View style={styles.headerRow}>
               <Text style={styles.title}>Transactions</Text>
               <Pressable style={styles.searchButton} onPress={() => setSearchOpen((v) => !v)}>
-                <Search size={19} color="#16233a" strokeWidth={2} />
+                <Search size={19} color={colors.text} strokeWidth={2} />
               </Pressable>
             </View>
 
@@ -79,7 +83,7 @@ export default function ActivityScreen() {
               <TextInput
                 style={styles.searchInput}
                 placeholder="Search transactions"
-                placeholderTextColor="#b3bccb"
+                placeholderTextColor={colors.textPlaceholder}
                 value={search}
                 onChangeText={setSearch}
                 autoFocus
@@ -119,6 +123,7 @@ export default function ActivityScreen() {
             subtitle={`${item.categoryName} · ${formatTime(item.occurredAt)}`}
             amount={item.amount}
             kind={item.kind}
+            onPress={() => router.push(`/edit-transaction?id=${item.id}`)}
           />
         )}
         ListEmptyComponent={<Text style={styles.emptyText}>No transactions found</Text>}
@@ -127,110 +132,112 @@ export default function ActivityScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f6f8fc',
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#16233a',
-    letterSpacing: -0.2,
-  },
-  searchButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#eaeef5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchInput: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#eaeef5',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#16233a',
-    marginBottom: 14,
-  },
-  summaryCard: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    padding: 16,
-    paddingHorizontal: 18,
-    borderWidth: 1,
-    borderColor: '#eaeef5',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: '#8894ab',
-    fontWeight: '600',
-    marginBottom: 3,
-  },
-  summaryValue: {
-    fontSize: 23,
-    fontWeight: '800',
-    color: '#16233a',
-    letterSpacing: -0.2,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    gap: 9,
-    marginBottom: 6,
-  },
-  chip: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e6eaf2',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  chipSelected: {
-    backgroundColor: '#2f6bed',
-    borderColor: '#2f6bed',
-  },
-  chipLabel: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#6b7891',
-  },
-  chipLabelSelected: {
-    color: '#fff',
-  },
-  sectionHeader: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#8894ab',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 16,
-    marginBottom: 2,
-  },
-  emptyText: {
-    fontSize: 13,
-    color: '#8894ab',
-    paddingVertical: 20,
-    textAlign: 'center',
-  },
-});
+function createStyles(colors: ReturnType<typeof useThemeColors>) {
+  return StyleSheet.create({
+    safeArea: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: 20,
+      paddingBottom: 100,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 18,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.text,
+      letterSpacing: -0.2,
+    },
+    searchButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    searchInput: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      fontSize: 14,
+      color: colors.text,
+      marginBottom: 14,
+    },
+    summaryCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 18,
+      padding: 16,
+      paddingHorizontal: 18,
+      borderWidth: 1,
+      borderColor: colors.border,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 18,
+    },
+    summaryLabel: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: '600',
+      marginBottom: 3,
+    },
+    summaryValue: {
+      fontSize: 23,
+      fontWeight: '800',
+      color: colors.text,
+      letterSpacing: -0.2,
+    },
+    chipsRow: {
+      flexDirection: 'row',
+      gap: 9,
+      marginBottom: 6,
+    },
+    chip: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.borderMuted,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+    },
+    chipSelected: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    chipLabel: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: colors.textMuted,
+    },
+    chipLabelSelected: {
+      color: colors.textOnAccent,
+    },
+    sectionHeader: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textSecondary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginTop: 16,
+      marginBottom: 2,
+    },
+    emptyText: {
+      fontSize: 13,
+      color: colors.textSecondary,
+      paddingVertical: 20,
+      textAlign: 'center',
+    },
+  });
+}
