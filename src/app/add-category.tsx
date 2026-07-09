@@ -1,20 +1,23 @@
 import { eq } from 'drizzle-orm';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Check, ChevronLeft, Trash2 } from 'lucide-react-native';
+import { Check, ChevronLeft, Search, Trash2, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CategoryIcon } from '@/components/budget/category-icon';
 import { SegmentedControl } from '@/components/budget/segmented-control';
+import { ColorPickerModal } from '@/components/color-picker-modal';
 import { CATEGORY_COLOR_PRESETS, CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
 import { db } from '@/db/client';
 import { categories } from '@/db/schema';
 import { assertCategoryDeletable, DeleteBlockedError } from '@/db/guards';
 import { useCategories } from '@/hooks/use-categories';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { tintWithWhite } from '@/lib/color';
 
 const ICON_KEYS = Object.keys(CATEGORY_ICONS) as CategoryIconKey[];
+const DEFAULT_ICON_COUNT = 24;
 
 export default function AddCategoryScreen() {
   const colors = useThemeColors();
@@ -33,6 +36,21 @@ export default function AddCategoryScreen() {
   const [icon, setIcon] = useState<CategoryIconKey>((editing?.icon as CategoryIconKey) ?? ICON_KEYS[0]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [iconQuery, setIconQuery] = useState('');
+  const searchingIcons = iconQuery.trim().length > 0;
+  const filteredIconKeys = useMemo(() => {
+    const q = iconQuery.trim().toLowerCase();
+    if (!q) {
+      const defaults = ICON_KEYS.slice(0, DEFAULT_ICON_COUNT);
+      return defaults.includes(icon) ? defaults : [...defaults, icon];
+    }
+    return ICON_KEYS.filter((key) => key.replace(/-/g, ' ').includes(q));
+  }, [iconQuery, icon]);
+
+  function handleCustomColor(hex: string) {
+    setPreset({ color: hex, bgColor: tintWithWhite(hex) });
+  }
 
   async function handleSave() {
     const trimmed = name.trim();
@@ -132,23 +150,61 @@ export default function AddCategoryScreen() {
           })}
         </View>
 
+        <Pressable style={styles.customToggle} onPress={() => setPickerVisible(true)}>
+          <View style={[styles.customToggleSwatch, { backgroundColor: preset.color }]} />
+          <Text style={styles.customToggleText}>Custom color</Text>
+        </Pressable>
+
+        <ColorPickerModal
+          visible={pickerVisible}
+          initialColor={preset.color}
+          onConfirm={handleCustomColor}
+          onClose={() => setPickerVisible(false)}
+        />
+
         <Text style={styles.sectionLabel}>Icon</Text>
-        <View style={styles.iconGrid}>
-          {ICON_KEYS.map((key) => {
-            const selected = key === icon;
-            return (
-              <Pressable key={key} onPress={() => setIcon(key)}>
-                <CategoryIcon
-                  icon={CATEGORY_ICONS[key]}
-                  color={selected ? preset.color : colors.textSecondary}
-                  bgColor={selected ? preset.bgColor : colors.track}
-                  size={44}
-                  selected={selected}
-                />
-              </Pressable>
-            );
-          })}
+        <View style={styles.iconSearch}>
+          <Search size={15} color={colors.textSecondary} strokeWidth={2.2} />
+          <TextInput
+            style={styles.iconSearchInput}
+            value={iconQuery}
+            onChangeText={setIconQuery}
+            placeholder="Search icons"
+            placeholderTextColor={colors.textPlaceholder}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {iconQuery.length > 0 && (
+            <Pressable onPress={() => setIconQuery('')} hitSlop={8}>
+              <X size={15} color={colors.textSecondary} strokeWidth={2.2} />
+            </Pressable>
+          )}
         </View>
+
+        {filteredIconKeys.length === 0 ? (
+          <Text style={styles.iconEmptyText}>No icons match “{iconQuery}”</Text>
+        ) : (
+          <View style={styles.iconGrid}>
+            {filteredIconKeys.map((key) => {
+              const selected = key === icon;
+              return (
+                <Pressable key={key} onPress={() => setIcon(key)}>
+                  <CategoryIcon
+                    icon={CATEGORY_ICONS[key]}
+                    color={selected ? preset.color : colors.textSecondary}
+                    bgColor={selected ? preset.bgColor : colors.track}
+                    size={44}
+                    selected={selected}
+                  />
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+
+        {!searchingIcons && ICON_KEYS.length > DEFAULT_ICON_COUNT && (
+          <Text style={styles.iconMoreHint}>Search for more icons</Text>
+        )}
 
         {error && <Text style={styles.errorText}>{error}</Text>}
 
@@ -236,10 +292,65 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    customToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      alignSelf: 'flex-start',
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 20,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      marginBottom: 16,
+    },
+    customToggleSwatch: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: 'rgba(0,0,0,0.08)',
+    },
+    customToggleText: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    iconSearch: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      marginBottom: 16,
+    },
+    iconSearchInput: {
+      flex: 1,
+      paddingVertical: 10,
+      fontSize: 13.5,
+      fontWeight: '600',
+      color: colors.text,
+    },
+    iconEmptyText: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.textSecondary,
+      marginBottom: 24,
+    },
     iconGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 12,
+      marginBottom: 10,
+    },
+    iconMoreHint: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.textSecondary,
       marginBottom: 24,
     },
     errorText: {

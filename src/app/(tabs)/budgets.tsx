@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Plus, Trash2 } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CategoryIcon } from '@/components/budget/category-icon';
@@ -11,6 +12,7 @@ import { ProgressBar } from '@/components/budget/progress-bar';
 import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
 import { db } from '@/db/client';
 import { budgets as budgetsTable } from '@/db/schema';
+import { useAccountsActivitySwipe } from '@/hooks/use-accounts-activity-swipe';
 import { useBudgets } from '@/hooks/use-budgets';
 import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
@@ -26,6 +28,7 @@ export default function BudgetsScreen() {
   const selectedMonthKey = useMonthStore((s) => s.selectedMonthKey);
   const { formatCents } = useDisplayMoney();
   const [editing, setEditing] = useState(false);
+  const swipeGesture = useAccountsActivitySwipe();
 
   const { start, end } = monthRange(selectedMonthKey);
   const monthBudgets = useMemo(
@@ -67,6 +70,7 @@ export default function BudgetsScreen() {
   }
 
   return (
+    <GestureDetector gesture={swipeGesture}>
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
@@ -149,6 +153,7 @@ export default function BudgetsScreen() {
         </Pressable>
       </ScrollView>
     </SafeAreaView>
+    </GestureDetector>
   );
 }
 

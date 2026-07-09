@@ -16,8 +16,10 @@ import {
 } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useAccountsActivitySwipe } from '@/hooks/use-accounts-activity-swipe';
 import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { exportBackup, importBackup, validateBackup } from '@/lib/device/backup';
@@ -51,6 +53,7 @@ export default function SettingsScreen() {
   const [editingField, setEditingField] = useState<'name' | 'email' | null>(null);
   const [draft, setDraft] = useState('');
   const [dataBusy, setDataBusy] = useState(false);
+  const swipeGesture = useAccountsActivitySwipe();
 
   const themeLabel = THEME_OPTIONS.find((o) => o.value === preference)?.label ?? 'System';
 
@@ -132,6 +135,7 @@ export default function SettingsScreen() {
   }
 
   return (
+    <GestureDetector gesture={swipeGesture}>
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.headerRow}>
@@ -324,6 +328,7 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+    </GestureDetector>
   );
 }
 

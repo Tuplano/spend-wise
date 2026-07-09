@@ -3,12 +3,15 @@ import { router } from 'expo-router';
 import { Plus, Settings2, Wifi } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CategoryIcon } from '@/components/budget/category-icon';
 import { ACCOUNT_TYPE_ICONS, type AccountTypeIconKey } from '@/constants/accounts';
+import { matchBankPreset } from '@/constants/bank-presets';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useDisplayMoney } from '@/hooks/use-display-money';
+import { useSlideInOnFocus } from '@/hooks/use-slide-in-on-focus';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 
 /** Darkens (negative percent) or lightens (positive) a hex color, for a card's gradient stop. */
@@ -38,11 +41,13 @@ export default function AccountsScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const accounts = useAccounts();
   const { formatCents } = useDisplayMoney();
+  const slideStyle = useSlideInOnFocus('left');
 
   const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <Animated.View style={[styles.flexFill, slideStyle]}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
           <Text style={styles.title}>Accounts</Text>
@@ -72,38 +77,64 @@ export default function AccountsScreen() {
               {accounts.map((a) => {
                 const balance = a.balance;
                 const Icon = ACCOUNT_TYPE_ICONS[a.typeIcon as AccountTypeIconKey];
+                const bank = matchBankPreset(a.name);
+                const gradientColors: [string, string, string] = bank
+                  ? bank.gradient
+                  : [shade(a.color, 12), a.color, shade(a.color, -22)];
+                const textColor = bank?.textColor ?? '#ffffff';
+                const wordmarkColor = bank?.wordmarkColor ?? textColor;
+                const isDarkText = textColor.toLowerCase() !== '#ffffff';
+                const strong = isDarkText ? 'rgba(26,26,26,0.9)' : 'rgba(255,255,255,0.92)';
+                const soft = isDarkText ? 'rgba(26,26,26,0.72)' : 'rgba(255,255,255,0.75)';
+
                 return (
                   <LinearGradient
                     key={a.id}
-                    colors={[shade(a.color, 12), a.color, shade(a.color, -22)]}
+                    colors={gradientColors}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.accountCard}>
                     <View style={styles.accountCardSheen} pointerEvents="none" />
 
-                    <View style={styles.accountCardTopRow}>
-                      <View style={styles.chip}>
-                        <View style={styles.chipLine} />
-                        <View style={[styles.chipLine, { width: '55%' }]} />
+                    {bank?.kind === 'ewallet' ? (
+                      <View style={styles.walletBadgeRow}>
+                        <View
+                          style={[
+                            styles.walletMonogram,
+                            { backgroundColor: isDarkText ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.16)' },
+                          ]}>
+                          <Text style={[styles.walletMonogramText, { color: wordmarkColor }]}>{bank.label[0]}</Text>
+                        </View>
+                        <Text style={[styles.wordmarkText, { color: wordmarkColor }]}>{bank.label}</Text>
                       </View>
-                      <Wifi size={20} color="rgba(255,255,255,0.85)" strokeWidth={2.2} style={styles.contactless} />
-                    </View>
+                    ) : (
+                      <View style={styles.accountCardTopRow}>
+                        <View style={styles.chip}>
+                          <View style={[styles.chipLine, { backgroundColor: strong }]} />
+                          <View style={[styles.chipLine, { width: '55%', backgroundColor: strong }]} />
+                        </View>
+                        <View style={styles.topRightGroup}>
+                          {bank && <Text style={[styles.wordmarkText, { color: wordmarkColor }]}>{bank.label}</Text>}
+                          <Wifi size={20} color={strong} strokeWidth={2.2} style={styles.contactless} />
+                        </View>
+                      </View>
+                    )}
 
-                    <Text style={styles.accountCardNumber}>
+                    <Text style={[styles.accountCardNumber, { color: soft }]}>
                       •••• &nbsp;•••• &nbsp;•••• &nbsp;{cardDigits(a)}
                     </Text>
 
                     <View style={styles.accountCardBottomRow}>
                       <View style={styles.accountCardIdentity}>
-                        <Text style={styles.accountCardName} numberOfLines={1}>
+                        <Text style={[styles.accountCardName, { color: textColor }]} numberOfLines={1}>
                           {a.name}
                         </Text>
-                        <Text style={styles.accountCardType}>{a.typeName}</Text>
+                        <Text style={[styles.accountCardType, { color: soft }]}>{a.typeName}</Text>
                       </View>
-                      <Icon size={22} color="rgba(255,255,255,0.9)" strokeWidth={2} />
+                      <Icon size={22} color={strong} strokeWidth={2} />
                     </View>
 
-                    <Text style={styles.accountCardBalance}>{formatCents(balance)}</Text>
+                    <Text style={[styles.accountCardBalance, { color: textColor }]}>{formatCents(balance)}</Text>
                   </LinearGradient>
                 );
               })}
@@ -139,6 +170,7 @@ export default function AccountsScreen() {
           </>
         )}
       </ScrollView>
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -148,6 +180,9 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
     safeArea: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    flexFill: {
+      flex: 1,
     },
     content: {
       padding: 20,
@@ -222,6 +257,33 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       flexDirection: 'row',
       alignItems: 'flex-start',
       justifyContent: 'space-between',
+    },
+    topRightGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    wordmarkText: {
+      fontSize: 14,
+      fontWeight: '800',
+      letterSpacing: 0.2,
+      color: '#ffffff',
+    },
+    walletBadgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    walletMonogram: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    walletMonogramText: {
+      fontSize: 15,
+      fontWeight: '800',
     },
     chip: {
       width: 34,

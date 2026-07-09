@@ -2,12 +2,14 @@ import { router } from 'expo-router';
 import { Search } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MonthPicker } from '@/components/budget/month-picker';
 import { TransactionRow } from '@/components/budget/transaction-row';
 import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
 import { useDisplayMoney } from '@/hooks/use-display-money';
+import { useSlideInOnFocus } from '@/hooks/use-slide-in-on-focus';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useTransactions } from '@/hooks/use-transactions';
 import { dayLabel, formatTime, monthLabel, monthRange } from '@/lib/date';
@@ -30,6 +32,7 @@ export default function ActivityScreen() {
   const [filter, setFilter] = useState<Filter>('all');
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const slideStyle = useSlideInOnFocus('right');
 
   const { start, end } = monthRange(selectedMonthKey);
 
@@ -66,6 +69,7 @@ export default function ActivityScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <View style={styles.flexFill}>
       <SectionList
         sections={sections}
         keyExtractor={(item) => String(item.id)}
@@ -129,6 +133,7 @@ export default function ActivityScreen() {
         )}
         ListEmptyComponent={<Text style={styles.emptyText}>No transactions found</Text>}
       />
+      </View>
     </SafeAreaView>
   );
 }
@@ -138,6 +143,9 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
     safeArea: {
       flex: 1,
       backgroundColor: colors.background,
+    },
+    flexFill: {
+      flex: 1,
     },
     content: {
       padding: 20,

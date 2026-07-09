@@ -2,8 +2,7 @@ import { router } from 'expo-router';
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { runOnJS } from 'react-native-reanimated';
+import { GestureDetector } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BalanceCard } from '@/components/budget/balance-card';
@@ -12,6 +11,7 @@ import { ProgressBar } from '@/components/budget/progress-bar';
 import { TransactionRow } from '@/components/budget/transaction-row';
 import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
 import { useAccounts } from '@/hooks/use-accounts';
+import { useAccountsActivitySwipe } from '@/hooks/use-accounts-activity-swipe';
 import { useBudgets } from '@/hooks/use-budgets';
 import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
@@ -70,22 +70,7 @@ export default function DashboardScreen() {
   const budgetProgress = monthBudgetLimit > 0 ? monthSpent / monthBudgetLimit : 0;
 
   const recent = thisMonthTransactions.slice(0, 4);
-
-  // Swipe right -> Accounts, swipe left -> Activity. The offset thresholds require a clearly
-  // horizontal drag before activating, so vertical scrolling in the ScrollView below is unaffected.
-  // onEnd runs as a UI-thread worklet, so router.push must be marshalled back to the JS thread.
-  const goToAccounts = () => router.push('/accounts');
-  const goToActivity = () => router.push('/activity');
-  const swipeGesture = Gesture.Pan()
-    .activeOffsetX([-20, 20])
-    .failOffsetY([-15, 15])
-    .onEnd((e) => {
-      if (e.translationX > 60) {
-        runOnJS(goToAccounts)();
-      } else if (e.translationX < -60) {
-        runOnJS(goToActivity)();
-      }
-    });
+  const swipeGesture = useAccountsActivitySwipe();
 
   return (
     <GestureDetector gesture={swipeGesture}>

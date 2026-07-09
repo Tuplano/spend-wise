@@ -1,11 +1,13 @@
 import { TrendingDown, TrendingUp } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { GestureDetector } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DonutChart } from '@/components/budget/donut-chart';
 import { MonthPicker } from '@/components/budget/month-picker';
 import { WeeklyBarChart } from '@/components/budget/weekly-bar-chart';
+import { useAccountsActivitySwipe } from '@/hooks/use-accounts-activity-swipe';
 import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useTransactions } from '@/hooks/use-transactions';
@@ -18,6 +20,7 @@ export default function InsightsScreen() {
   const transactions = useTransactions();
   const selectedMonthKey = useMonthStore((s) => s.selectedMonthKey);
   const { formatCents, formatCompactCents } = useDisplayMoney();
+  const swipeGesture = useAccountsActivitySwipe();
 
   const { start, end } = monthRange(selectedMonthKey);
   const monthExpenses = transactions.filter(
@@ -55,6 +58,7 @@ export default function InsightsScreen() {
   const categorySegments = Array.from(categoryTotals.values()).sort((a, b) => b.value - a.value);
 
   return (
+    <GestureDetector gesture={swipeGesture}>
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
@@ -118,6 +122,7 @@ export default function InsightsScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+    </GestureDetector>
   );
 }
 
