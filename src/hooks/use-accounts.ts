@@ -9,6 +9,7 @@ export type AccountWithType = {
   name: string;
   color: string;
   accountNumber: string | null;
+  openingBalance: number;
   sortOrder: number;
   typeId: number;
   typeName: string;
@@ -23,6 +24,7 @@ export function useAccounts(): AccountWithType[] {
         name: accounts.name,
         color: accounts.color,
         accountNumber: accounts.accountNumber,
+        openingBalance: accounts.openingBalance,
         sortOrder: accounts.sortOrder,
         typeId: accounts.typeId,
         typeName: accountTypes.name,

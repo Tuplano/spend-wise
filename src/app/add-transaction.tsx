@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
 import { CategoryIcon } from '@/components/budget/category-icon';
+import { DatePickerModal } from '@/components/budget/date-picker-modal';
 import { SegmentedControl } from '@/components/budget/segmented-control';
 import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
 import { db } from '@/db/client';
@@ -14,6 +15,7 @@ import { useAccounts } from '@/hooks/use-accounts';
 import { useCategories } from '@/hooks/use-categories';
 import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { dayLabel } from '@/lib/date';
 import { currencyOption } from '@/lib/money/currency';
 import { BASE_CURRENCY } from '@/lib/money/exchange-rates';
 
@@ -37,7 +39,8 @@ export default function AddTransactionScreen() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
-  const [isYesterday, setIsYesterday] = useState(false);
+  const [occurredAt, setOccurredAt] = useState(() => new Date());
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -59,8 +62,6 @@ export default function AddTransactionScreen() {
     }
 
     const category = categories.find((c) => c.id === parsed.data.categoryId)!;
-    const occurredAt = new Date();
-    if (isYesterday) occurredAt.setDate(occurredAt.getDate() - 1);
 
     setSaving(true);
     try {
@@ -175,9 +176,9 @@ export default function AddTransactionScreen() {
               </Pressable>
             </View>
           )}
-          <Pressable style={[styles.detailRow, styles.detailRowBorder]} onPress={() => setIsYesterday((v) => !v)}>
+          <Pressable style={[styles.detailRow, styles.detailRowBorder]} onPress={() => setDatePickerOpen(true)}>
             <Text style={styles.detailLabel}>Date</Text>
-            <Text style={styles.detailValue}>{isYesterday ? 'Yesterday' : 'Today'}</Text>
+            <Text style={styles.detailValue}>{dayLabel(occurredAt)}</Text>
           </Pressable>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Note</Text>
@@ -197,6 +198,14 @@ export default function AddTransactionScreen() {
           <Text style={styles.saveButtonText}>Save transaction</Text>
         </Pressable>
       </ScrollView>
+
+      <DatePickerModal
+        visible={datePickerOpen}
+        value={occurredAt}
+        maxDate={new Date()}
+        onSelect={setOccurredAt}
+        onClose={() => setDatePickerOpen(false)}
+      />
     </SafeAreaView>
   );
 }

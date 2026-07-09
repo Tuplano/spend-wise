@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { z } from 'zod';
 
 import { CategoryIcon } from '@/components/budget/category-icon';
+import { DatePickerModal } from '@/components/budget/date-picker-modal';
 import { SegmentedControl } from '@/components/budget/segmented-control';
 import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
 import { db } from '@/db/client';
@@ -16,7 +17,7 @@ import { useCategories } from '@/hooks/use-categories';
 import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useTransactions } from '@/hooks/use-transactions';
-import { formatDate } from '@/lib/date';
+import { dayLabel } from '@/lib/date';
 import { currencyOption } from '@/lib/money/currency';
 import { BASE_CURRENCY } from '@/lib/money/exchange-rates';
 
@@ -50,6 +51,8 @@ export default function EditTransactionScreen() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
   const [accountPickerOpen, setAccountPickerOpen] = useState(false);
+  const [occurredAt, setOccurredAt] = useState(() => new Date());
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -62,6 +65,7 @@ export default function EditTransactionScreen() {
     setAmountText((original.amount / 100).toString());
     setCategoryId(original.categoryId);
     setAccountId(original.accountId);
+    setOccurredAt(original.occurredAt);
     setNote(original.merchant);
   }, [original]);
 
@@ -93,6 +97,7 @@ export default function EditTransactionScreen() {
           kind,
           amount: parsed.data.amount,
           merchant: note.trim() || category.name,
+          occurredAt,
         })
         .where(eq(transactions.id, transactionId));
       router.back();
@@ -214,10 +219,10 @@ export default function EditTransactionScreen() {
               </Pressable>
             </View>
           )}
-          <View style={[styles.detailRow, styles.detailRowBorder]}>
+          <Pressable style={[styles.detailRow, styles.detailRowBorder]} onPress={() => setDatePickerOpen(true)}>
             <Text style={styles.detailLabel}>Date</Text>
-            <Text style={styles.detailValue}>{formatDate(original.occurredAt)}</Text>
-          </View>
+            <Text style={styles.detailValue}>{dayLabel(occurredAt)}</Text>
+          </Pressable>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Note</Text>
             <TextInput
@@ -241,6 +246,14 @@ export default function EditTransactionScreen() {
           <Text style={styles.deleteButtonText}>Delete transaction</Text>
         </Pressable>
       </ScrollView>
+
+      <DatePickerModal
+        visible={datePickerOpen}
+        value={occurredAt}
+        maxDate={new Date()}
+        onSelect={setOccurredAt}
+        onClose={() => setDatePickerOpen(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -13,6 +13,11 @@ import { accounts } from '@/db/schema';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useAccountTypes } from '@/hooks/use-account-types';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { useTransactions } from '@/hooks/use-transactions';
+import { currencyOption } from '@/lib/money/currency';
+import { BASE_CURRENCY } from '@/lib/money/exchange-rates';
+
+const baseCurrencySymbol = currencyOption(BASE_CURRENCY).symbol;
 
 export default function AddAccountScreen() {
   const colors = useThemeColors();
@@ -21,10 +26,23 @@ export default function AddAccountScreen() {
   const accountId = id ? Number(id) : null;
   const allAccounts = useAccounts();
   const accountTypes = useAccountTypes();
+  const transactions = useTransactions();
   const editing = useMemo(() => allAccounts.find((a) => a.id === accountId) ?? null, [allAccounts, accountId]);
+
+  /** Net of all transactions already logged against this account — needed to translate the
+   * user-facing current balance back into the stored opening balance on save. */
+  const accountNetTransactions = useMemo(() => {
+    if (!editing) return 0;
+    return transactions
+      .filter((t) => t.accountId === editing.id)
+      .reduce((sum, t) => sum + (t.kind === 'income' ? t.amount : -t.amount), 0);
+  }, [transactions, editing]);
 
   const [name, setName] = useState(editing?.name ?? '');
   const [accountNumber, setAccountNumber] = useState(editing?.accountNumber ?? '');
+  const [balanceText, setBalanceText] = useState(
+    editing ? ((editing.openingBalance + accountNetTransactions) / 100).toString() : ''
+  );
   const [typeId, setTypeId] = useState<number | null>(editing?.typeId ?? null);
   const [color, setColor] = useState(editing?.color ?? ACCOUNT_COLOR_PRESETS[0]);
   const [error, setError] = useState<string | null>(null);
@@ -44,17 +62,21 @@ export default function AddAccountScreen() {
     }
 
     const trimmedNumber = accountNumber.trim() || null;
+    const balanceCents = Math.round(parseFloat(balanceText || '0') * 100);
+    const openingBalance = balanceCents - accountNetTransactions;
 
     setSaving(true);
     try {
       if (editing) {
         await db
           .update(accounts)
-          .set({ name: trimmed, typeId, color, accountNumber: trimmedNumber })
+          .set({ name: trimmed, typeId, color, accountNumber: trimmedNumber, openingBalance })
           .where(eq(accounts.id, editing.id));
       } else {
         const sortOrder = allAccounts.reduce((max, a) => Math.max(max, a.sortOrder), 0) + 1;
-        await db.insert(accounts).values({ name: trimmed, typeId, color, accountNumber: trimmedNumber, sortOrder });
+        await db
+          .insert(accounts)
+          .values({ name: trimmed, typeId, color, accountNumber: trimmedNumber, openingBalance, sortOrder });
       }
       router.back();
     } finally {
@@ -123,6 +145,19 @@ export default function AddAccountScreen() {
           placeholderTextColor={colors.textPlaceholder}
           keyboardType="numbers-and-punctuation"
         />
+
+        <Text style={styles.sectionLabel}>Balance</Text>
+        <View style={styles.amountInputWrap}>
+          <Text style={styles.amountPrefix}>{baseCurrencySymbol}</Text>
+          <TextInput
+            style={styles.amountInput}
+            value={balanceText}
+            onChangeText={setBalanceText}
+            placeholder="0.00"
+            placeholderTextColor={colors.textPlaceholder}
+            keyboardType="decimal-pad"
+          />
+        </View>
 
         <Text style={styles.sectionLabel}>Type</Text>
         <View style={styles.typeGrid}>
@@ -226,6 +261,29 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       fontWeight: '600',
       color: colors.text,
       marginBottom: 24,
+    },
+    amountInputWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 14,
+      marginBottom: 24,
+    },
+    amountPrefix: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textSecondary,
+      marginRight: 6,
+    },
+    amountInput: {
+      flex: 1,
+      paddingVertical: 12,
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.text,
     },
     typeGrid: {
       flexDirection: 'row',

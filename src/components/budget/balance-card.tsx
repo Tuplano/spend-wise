@@ -1,24 +1,29 @@
 import { TrendingDown, TrendingUp } from 'lucide-react-native';
-import { useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 
 type BalanceCardProps = {
+  label?: string;
   balance: number;
   income: number;
   spent: number;
+  headerRight?: ReactNode;
 };
 
-export function BalanceCard({ balance, income, spent }: BalanceCardProps) {
+export function BalanceCard({ label = 'Total balance', balance, income, spent, headerRight }: BalanceCardProps) {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { formatCents } = useDisplayMoney();
 
   return (
     <View style={styles.card}>
-      <Text style={styles.label}>Total balance</Text>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>{label}</Text>
+        {headerRight}
+      </View>
       <Text style={styles.balance}>{formatCents(balance)}</Text>
       <View style={styles.row}>
         <View style={styles.stat}>
@@ -52,11 +57,16 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       shadowRadius: 34,
       elevation: 6,
     },
+    labelRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 6,
+    },
     label: {
       fontSize: 13,
       color: 'rgba(255,255,255,0.75)',
       fontWeight: '600',
-      marginBottom: 6,
     },
     balance: {
       fontSize: 34,

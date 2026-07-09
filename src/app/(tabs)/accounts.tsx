@@ -43,12 +43,15 @@ export default function AccountsScreen() {
 
   const balanceByAccount = useMemo(() => {
     const map = new Map<number, number>();
+    for (const a of accounts) {
+      map.set(a.id, a.openingBalance);
+    }
     for (const t of transactions) {
       if (t.accountId == null) continue;
       map.set(t.accountId, (map.get(t.accountId) ?? 0) + (t.kind === 'income' ? t.amount : -t.amount));
     }
     return map;
-  }, [transactions]);
+  }, [accounts, transactions]);
 
   const totalBalance = accounts.reduce((sum, a) => sum + (balanceByAccount.get(a.id) ?? 0), 0);
 

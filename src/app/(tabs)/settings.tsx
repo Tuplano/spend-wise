@@ -1,3 +1,6 @@
+import Constants from 'expo-constants';
+import * as DocumentPicker from 'expo-document-picker';
+import { File } from 'expo-file-system';
 import { router } from 'expo-router';
 import {
   Banknote,
@@ -5,15 +8,19 @@ import {
   ChevronRight,
   ChevronUp,
   Contrast,
+  Download,
+  Info,
   Landmark,
   Tag,
+  UploadCloud,
 } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { exportBackup, importBackup, validateBackup } from '@/lib/device/backup';
 import { CURRENCY_OPTIONS } from '@/lib/money/currency';
 import { BASE_CURRENCY } from '@/lib/money/exchange-rates';
 import { useCurrencyStore } from '@/stores/currency-store';
@@ -43,6 +50,7 @@ export default function SettingsScreen() {
   const [expandedPicker, setExpandedPicker] = useState<'theme' | 'currency' | null>(null);
   const [editingField, setEditingField] = useState<'name' | 'email' | null>(null);
   const [draft, setDraft] = useState('');
+  const [dataBusy, setDataBusy] = useState(false);
 
   const themeLabel = THEME_OPTIONS.find((o) => o.value === preference)?.label ?? 'System';
 
@@ -66,6 +74,62 @@ export default function SettingsScreen() {
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
       .join('') || 'Y';
+
+  async function handleExportBackup() {
+    if (dataBusy) return;
+    setDataBusy(true);
+    try {
+      await exportBackup();
+    } catch (error) {
+      Alert.alert('Export failed', error instanceof Error ? error.message : 'Something went wrong.');
+    } finally {
+      setDataBusy(false);
+    }
+  }
+
+  async function handleImportBackup() {
+    if (dataBusy) return;
+
+    const result = await DocumentPicker.getDocumentAsync({
+      type: 'application/json',
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled) return;
+
+    setDataBusy(true);
+    try {
+      const raw = JSON.parse(await new File(result.assets[0].uri).text());
+      const validation = validateBackup(raw);
+      if (!validation.ok) {
+        Alert.alert('Invalid backup', validation.error);
+        return;
+      }
+
+      Alert.alert(
+        'Replace all data?',
+        "Importing will delete your current accounts, transactions, budgets, and categories, and replace them with this backup. This can't be undone.",
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Import',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await importBackup(validation.data);
+                Alert.alert('Import complete', 'Your data has been restored from the backup.');
+              } catch (error) {
+                Alert.alert('Import failed', error instanceof Error ? error.message : 'Something went wrong.');
+              }
+            },
+          },
+        ]
+      );
+    } catch {
+      Alert.alert('Invalid backup', 'Could not read that file as a backup.');
+    } finally {
+      setDataBusy(false);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -224,6 +288,39 @@ export default function SettingsScreen() {
               <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.2} />
             </View>
           </Pressable>
+        </View>
+
+        <Text style={styles.sectionLabel}>Data</Text>
+        <View style={styles.group}>
+          <Pressable
+            style={({ pressed }) => pressed && styles.pressed}
+            onPress={handleExportBackup}
+            disabled={dataBusy}>
+            <View style={[styles.row, styles.rowBorder]}>
+              <IconBadge icon={UploadCloud} tint={colors.accent} bg={colors.accentSoft} />
+              <Text style={styles.rowLabel}>Export backup</Text>
+              <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.2} />
+            </View>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => pressed && styles.pressed}
+            onPress={handleImportBackup}
+            disabled={dataBusy}>
+            <View style={[styles.row, styles.rowNoBorder]}>
+              <IconBadge icon={Download} tint={colors.danger} bg={colors.dangerSoft} />
+              <Text style={styles.rowLabel}>Import backup</Text>
+              <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.2} />
+            </View>
+          </Pressable>
+        </View>
+
+        <Text style={styles.sectionLabel}>About</Text>
+        <View style={styles.group}>
+          <View style={[styles.row, styles.rowNoBorder]}>
+            <IconBadge icon={Info} tint={colors.textSecondary} bg={colors.track} />
+            <Text style={styles.rowLabel}>About Spend Wise</Text>
+            <Text style={styles.rowValue}>v{Constants.expoConfig?.version ?? '1.0.0'}</Text>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
