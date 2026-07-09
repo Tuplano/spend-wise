@@ -6,6 +6,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CategoryIcon } from '@/components/budget/category-icon';
+import { ColorPickerModal } from '@/components/color-picker-modal';
 import { ACCOUNT_COLOR_PRESETS, ACCOUNT_TYPE_ICONS, type AccountTypeIconKey } from '@/constants/accounts';
 import { reconcileAccountBalance } from '@/db/balance';
 import { db } from '@/db/client';
@@ -35,6 +36,7 @@ export default function AddAccountScreen() {
   const [color, setColor] = useState(ACCOUNT_COLOR_PRESETS[0]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pickerVisible, setPickerVisible] = useState(false);
 
   const loadedRef = useRef(false);
   useEffect(() => {
@@ -193,6 +195,18 @@ export default function AddAccountScreen() {
           })}
         </View>
 
+        <Pressable style={styles.customToggle} onPress={() => setPickerVisible(true)}>
+          <View style={[styles.customToggleSwatch, { backgroundColor: color }]} />
+          <Text style={styles.customToggleText}>Custom color</Text>
+        </Pressable>
+
+        <ColorPickerModal
+          visible={pickerVisible}
+          initialColor={color}
+          onConfirm={setColor}
+          onClose={() => setPickerVisible(false)}
+        />
+
         {error && <Text style={styles.errorText}>{error}</Text>}
 
         <Pressable style={[styles.saveButton, saving && styles.saveButtonDisabled]} onPress={handleSave} disabled={saving}>
@@ -326,6 +340,32 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       borderRadius: 18,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    customToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      alignSelf: 'flex-start',
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: 20,
+      paddingVertical: 8,
+      paddingHorizontal: 12,
+      marginTop: 12,
+      marginBottom: 24,
+    },
+    customToggleSwatch: {
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: 'rgba(0,0,0,0.08)',
+    },
+    customToggleText: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: colors.text,
     },
     errorText: {
       color: colors.danger,
