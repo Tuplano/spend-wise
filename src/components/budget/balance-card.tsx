@@ -1,9 +1,10 @@
-import { TrendingDown, TrendingUp } from 'lucide-react-native';
 import { type ReactNode, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useDisplayMoney } from '@/hooks/use-display-money';
+import { Spacing } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { withAlpha } from '@/lib/color';
 
 type BalanceCardProps = {
   label?: string;
@@ -28,17 +29,12 @@ export function BalanceCard({ label = 'Total balance', balance, income, spent, h
       {income !== undefined && spent !== undefined && (
         <View style={styles.row}>
           <View style={styles.stat}>
-            <View style={styles.statHeader}>
-              <TrendingUp size={13} color={colors.textOnAccent} strokeWidth={2.6} />
-              <Text style={styles.statLabel}>Income</Text>
-            </View>
+            <Text style={styles.statLabel}>Income</Text>
             <Text style={styles.statValue}>{formatCents(income)}</Text>
           </View>
+          <View style={styles.statDivider} />
           <View style={styles.stat}>
-            <View style={styles.statHeader}>
-              <TrendingDown size={13} color={colors.textOnAccent} strokeWidth={2.6} />
-              <Text style={styles.statLabel}>Spent</Text>
-            </View>
+            <Text style={styles.statLabel}>Spent</Text>
             <Text style={styles.statValue}>{formatCents(spent)}</Text>
           </View>
         </View>
@@ -51,57 +47,55 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
   return StyleSheet.create({
     card: {
       backgroundColor: colors.accent,
-      borderRadius: 24,
-      padding: 22,
-      shadowColor: colors.accent,
-      shadowOffset: { width: 0, height: 16 },
-      shadowOpacity: 0.32,
-      shadowRadius: 34,
-      elevation: 6,
+      borderRadius: 14,
+      padding: Spacing.three,
     },
     labelRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 6,
+      marginBottom: Spacing.half,
     },
     label: {
       fontSize: 13,
-      color: 'rgba(255,255,255,0.75)',
+      color: withAlpha(colors.textOnAccent, 0.72),
       fontWeight: '600',
     },
     balance: {
-      fontSize: 34,
+      fontSize: 32,
       color: colors.textOnAccent,
-      fontWeight: '800',
+      fontWeight: '700',
       letterSpacing: -0.5,
+      fontVariant: ['tabular-nums'],
     },
     row: {
       flexDirection: 'row',
-      gap: 10,
-      marginTop: 20,
+      alignItems: 'center',
+      marginTop: Spacing.three,
+      paddingTop: Spacing.two,
+      borderTopWidth: 1,
+      borderTopColor: withAlpha(colors.textOnAccent, 0.18),
     },
     stat: {
       flex: 1,
-      backgroundColor: 'rgba(255,255,255,0.15)',
-      borderRadius: 14,
-      padding: 12,
+      gap: 2,
     },
-    statHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      marginBottom: 3,
+    statDivider: {
+      width: 1,
+      alignSelf: 'stretch',
+      backgroundColor: withAlpha(colors.textOnAccent, 0.18),
+      marginHorizontal: Spacing.two,
     },
     statLabel: {
       fontSize: 11.5,
-      color: 'rgba(255,255,255,0.8)',
+      color: withAlpha(colors.textOnAccent, 0.72),
       fontWeight: '600',
     },
     statValue: {
       fontSize: 15,
       color: colors.textOnAccent,
-      fontWeight: '800',
+      fontWeight: '700',
+      fontVariant: ['tabular-nums'],
     },
   });
 }

@@ -10,6 +10,7 @@ import { MonthPickerModal } from '@/components/budget/month-picker-modal';
 import { ProgressBar } from '@/components/budget/progress-bar';
 import { TransactionRow } from '@/components/budget/transaction-row';
 import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
+import { Spacing } from '@/constants/theme';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useAccountsActivitySwipe } from '@/hooks/use-accounts-activity-swipe';
 import { useBudgets } from '@/hooks/use-budgets';
@@ -92,7 +93,7 @@ export default function DashboardScreen() {
             <BalanceCard label="Total balance" balance={totalBalance} />
           </View>
 
-          <View style={styles.balanceSpacing}>
+          <View style={styles.monthBalanceSpacing}>
             <BalanceCard
               label={`${monthLabel(selectedMonthKey)} balance`}
               balance={monthNet}
@@ -171,53 +172,52 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       backgroundColor: colors.background,
     },
     content: {
-      padding: 20,
+      padding: Spacing.three,
       paddingBottom: 100,
     },
     headerRow: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 22,
+      marginBottom: Spacing.four,
     },
     greetingBlock: {
       flex: 1,
       gap: 2,
     },
     greeting: {
-      fontSize: 20,
+      fontSize: 18,
       color: colors.text,
-      fontWeight: '800',
+      fontWeight: '700',
     },
     greetingEmail: {
       fontSize: 12.5,
       color: colors.textSecondary,
-      fontWeight: '600',
+      fontWeight: '500',
     },
     avatar: {
-      width: 42,
-      height: 42,
-      borderRadius: 14,
+      width: 40,
+      height: 40,
+      borderRadius: 10,
       backgroundColor: colors.accent,
       alignItems: 'center',
       justifyContent: 'center',
     },
     avatarText: {
-      fontSize: 15,
-      fontWeight: '800',
+      fontSize: 14,
+      fontWeight: '700',
       color: colors.textOnAccent,
     },
     balanceSpacing: {
-      marginBottom: 18,
+      marginBottom: Spacing.two,
+    },
+    monthBalanceSpacing: {
+      marginBottom: Spacing.four,
     },
     monthSwitcher: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 2,
-      backgroundColor: 'rgba(255,255,255,0.15)',
-      borderRadius: 10,
-      paddingHorizontal: 6,
-      paddingVertical: 4,
     },
     monthArrow: {
       paddingHorizontal: 4,
@@ -230,59 +230,61 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
     },
     monthSwitcherLabel: {
       fontSize: 12,
-      fontWeight: '700',
+      fontWeight: '600',
       color: colors.textOnAccent,
       minWidth: 36,
       textAlign: 'center',
     },
     budgetCard: {
       backgroundColor: colors.surface,
-      borderRadius: 20,
-      padding: 18,
+      borderRadius: 12,
+      padding: Spacing.three,
       borderWidth: 1,
       borderColor: colors.border,
-      marginBottom: 22,
+      marginBottom: Spacing.four,
     },
     budgetHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 14,
+      marginBottom: Spacing.two + 2,
     },
     budgetTitle: {
-      fontSize: 14.5,
-      fontWeight: '700',
+      fontSize: 14,
+      fontWeight: '600',
       color: colors.text,
     },
     budgetLeft: {
       fontSize: 13,
-      fontWeight: '700',
+      fontWeight: '600',
       color: colors.accent,
+      fontVariant: ['tabular-nums'],
     },
     budgetFooter: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginTop: 10,
+      marginTop: Spacing.two,
     },
     budgetFooterText: {
       fontSize: 12,
       color: colors.textSecondary,
-      fontWeight: '600',
+      fontWeight: '500',
+      fontVariant: ['tabular-nums'],
     },
     recentHeader: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 4,
+      marginBottom: Spacing.one,
     },
     recentTitle: {
       fontSize: 15,
-      fontWeight: '800',
+      fontWeight: '700',
       color: colors.text,
     },
     seeAll: {
       fontSize: 12.5,
-      fontWeight: '700',
+      fontWeight: '600',
       color: colors.accent,
     },
     emptyText: {

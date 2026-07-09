@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Svg, { Defs, Line, LinearGradient as SvgLinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 import { CategoryIcon } from '@/components/budget/category-icon';
 import { ACCOUNT_TYPE_ICONS, type AccountTypeIconKey } from '@/constants/accounts';
@@ -25,15 +26,48 @@ function shade(hex: string, percent: number) {
   return `#${(0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1)}`;
 }
 
-/** A stable, card-number-looking 4-digit group derived from the account id. */
-function pseudoDigits(id: number) {
-  return String(((id * 9973) % 9000) + 1000);
+/** The last 4 digits to show masked on the card, or null if the user never entered an account number
+ * — the number row is omitted entirely rather than showing a made-up placeholder. */
+function cardDigits(a: { accountNumber: string | null }) {
+  const digitsOnly = a.accountNumber?.replace(/\D/g, '') ?? '';
+  return digitsOnly ? digitsOnly.slice(-4).padStart(4, '0') : null;
 }
 
-/** The last 4 digits to show masked on the card: the real account number if set, else a stable placeholder. */
-function cardDigits(a: { id: number; accountNumber: string | null }) {
-  const digitsOnly = a.accountNumber?.replace(/\D/g, '') ?? '';
-  return digitsOnly ? digitsOnly.slice(-4).padStart(4, '0') : pseudoDigits(a.id);
+/** Physical cash has no card number or chip — only bank/credit-card/e-wallet accounts get that chrome. */
+function isCashLike(a: { typeIcon: string; typeName: string }) {
+  return ['wallet', 'banknote', 'coins'].includes(a.typeIcon) || /\bcash\b/i.test(a.typeName);
+}
+
+/** A physical EMV chip rendered in gold, matching a real card's chip artwork. */
+function EmvChip({ gradientId }: { gradientId: string }) {
+  return (
+    <Svg width={34} height={26} viewBox="0 0 40 30">
+      <Defs>
+        <SvgLinearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#f6e2ab" />
+          <Stop offset="0.5" stopColor="#d9b56a" />
+          <Stop offset="1" stopColor="#b8903f" />
+        </SvgLinearGradient>
+      </Defs>
+      <Rect x={0.5} y={0.5} width={39} height={29} rx={5.5} fill={`url(#${gradientId})`} stroke="#9c7830" strokeWidth={0.5} />
+      <Rect x={7} y={7} width={26} height={16} rx={2.5} fill="none" stroke="#8a6c2a" strokeWidth={0.9} />
+      <Line x1={20} y1={7} x2={20} y2={23} stroke="#8a6c2a" strokeWidth={0.9} />
+      <Line x1={7} y1={15} x2={33} y2={15} stroke="#8a6c2a" strokeWidth={0.9} />
+      <Line x1={13} y1={7} x2={13} y2={12} stroke="#8a6c2a" strokeWidth={0.9} />
+      <Line x1={27} y1={7} x2={27} y2={12} stroke="#8a6c2a" strokeWidth={0.9} />
+    </Svg>
+  );
+}
+
+/** Faint decorative wave lines in the card background, echoing a real card's guilloché print. */
+function CardWaves({ tint }: { tint: string }) {
+  return (
+    <Svg width="100%" height="100%" viewBox="0 0 268 172" style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Path d="M24 -12 C 100 26, 150 -6, 232 38" stroke={tint} strokeWidth={1} opacity={0.5} fill="none" />
+      <Path d="M6 20 C 96 58, 148 22, 246 66" stroke={tint} strokeWidth={1} opacity={0.35} fill="none" />
+      <Path d="M-10 96 C 76 58, 176 132, 252 84" stroke={tint} strokeWidth={1} opacity={0.28} fill="none" />
+    </Svg>
+  );
 }
 
 export default function AccountsScreen() {
@@ -87,6 +121,11 @@ export default function AccountsScreen() {
                 const strong = isDarkText ? 'rgba(26,26,26,0.9)' : 'rgba(255,255,255,0.92)';
                 const soft = isDarkText ? 'rgba(26,26,26,0.72)' : 'rgba(255,255,255,0.75)';
 
+                const iconBadgeBg = isDarkText ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.16)';
+                const waveTint = isDarkText ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)';
+                const cashLike = isCashLike(a);
+                const digits = cardDigits(a);
+
                 return (
                   <LinearGradient
                     key={a.id}
@@ -94,47 +133,48 @@ export default function AccountsScreen() {
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.accountCard}>
-                    <View style={styles.accountCardSheen} pointerEvents="none" />
+                    <LinearGradient
+                      pointerEvents="none"
+                      colors={['rgba(255,255,255,0.16)', 'rgba(255,255,255,0)']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0.65, y: 0.55 }}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <CardWaves tint={waveTint} />
+                    <Icon size={112} color={strong} strokeWidth={1.2} style={styles.cardWatermark} />
 
-                    {bank?.kind === 'ewallet' ? (
-                      <View style={styles.walletBadgeRow}>
-                        <View
-                          style={[
-                            styles.walletMonogram,
-                            { backgroundColor: isDarkText ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.16)' },
-                          ]}>
-                          <Text style={[styles.walletMonogramText, { color: wordmarkColor }]}>{bank.label[0]}</Text>
+                    <View style={styles.accountCardTopRow}>
+                      <View style={styles.topLeftGroup}>
+                        <View style={[styles.iconBadge, { backgroundColor: iconBadgeBg }]}>
+                          <Icon size={12} color={strong} strokeWidth={2.4} />
                         </View>
-                        <Text style={[styles.wordmarkText, { color: wordmarkColor }]}>{bank.label}</Text>
-                      </View>
-                    ) : (
-                      <View style={styles.accountCardTopRow}>
-                        <View style={styles.chip}>
-                          <View style={[styles.chipLine, { backgroundColor: strong }]} />
-                          <View style={[styles.chipLine, { width: '55%', backgroundColor: strong }]} />
-                        </View>
-                        <View style={styles.topRightGroup}>
-                          {bank && <Text style={[styles.wordmarkText, { color: wordmarkColor }]}>{bank.label}</Text>}
-                          <Wifi size={20} color={strong} strokeWidth={2.2} style={styles.contactless} />
-                        </View>
-                      </View>
-                    )}
-
-                    <Text style={[styles.accountCardNumber, { color: soft }]}>
-                      •••• &nbsp;•••• &nbsp;•••• &nbsp;{cardDigits(a)}
-                    </Text>
-
-                    <View style={styles.accountCardBottomRow}>
-                      <View style={styles.accountCardIdentity}>
                         <Text style={[styles.accountCardName, { color: textColor }]} numberOfLines={1}>
                           {a.name}
                         </Text>
-                        <Text style={[styles.accountCardType, { color: soft }]}>{a.typeName}</Text>
                       </View>
-                      <Icon size={22} color={strong} strokeWidth={2} />
+                      <Text style={[styles.accountCardType, { color: soft }]}>{a.typeName}</Text>
                     </View>
 
-                    <Text style={[styles.accountCardBalance, { color: textColor }]}>{formatCents(balance)}</Text>
+                    {!cashLike && bank?.kind !== 'ewallet' && (
+                      <View style={styles.chipRow}>
+                        <EmvChip gradientId={`chip-${a.id}`} />
+                        <Wifi size={17} color={soft} strokeWidth={2.1} style={styles.contactless} />
+                      </View>
+                    )}
+
+                    {!cashLike && digits && (
+                      <Text style={[styles.accountCardNumber, { color: soft }]}>
+                        •••• &nbsp;•••• &nbsp;•••• &nbsp;{digits}
+                      </Text>
+                    )}
+
+                    <View style={styles.accountCardBottomRow}>
+                      <View>
+                        <Text style={[styles.bottomLabel, { color: soft }]}>Balance</Text>
+                        <Text style={[styles.accountCardBalance, { color: textColor }]}>{formatCents(balance)}</Text>
+                      </View>
+                      {bank && <Text style={[styles.wordmarkText, { color: wordmarkColor }]}>{bank.label}</Text>}
+                    </View>
                   </LinearGradient>
                 );
               })}
@@ -232,114 +272,101 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       gap: 12,
     },
     accountCard: {
-      width: 264,
-      height: 162,
-      borderRadius: 20,
-      padding: 20,
+      width: 268,
+      height: 172,
+      borderRadius: 18,
+      padding: 18,
       justifyContent: 'space-between',
       overflow: 'hidden',
       shadowColor: '#000',
-      shadowOffset: { width: 0, height: 10 },
-      shadowOpacity: 0.2,
-      shadowRadius: 20,
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: 0.22,
+      shadowRadius: 22,
       elevation: 4,
     },
-    accountCardSheen: {
+    cardWatermark: {
       position: 'absolute',
-      top: -60,
-      right: -50,
-      width: 160,
-      height: 160,
-      borderRadius: 80,
-      backgroundColor: 'rgba(255,255,255,0.12)',
+      right: -14,
+      bottom: -14,
+      opacity: 0.1,
     },
     accountCardTopRow: {
       flexDirection: 'row',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       justifyContent: 'space-between',
     },
-    topRightGroup: {
+    topLeftGroup: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 7,
+      flexShrink: 1,
+    },
+    iconBadge: {
+      width: 22,
+      height: 22,
+      borderRadius: 6,
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
     },
     wordmarkText: {
-      fontSize: 14,
+      fontSize: 12.5,
       fontWeight: '800',
       letterSpacing: 0.2,
       color: '#ffffff',
     },
-    walletBadgeRow: {
+    chipRow: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
     },
-    walletMonogram: {
-      width: 32,
-      height: 32,
-      borderRadius: 10,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    walletMonogramText: {
-      fontSize: 15,
-      fontWeight: '800',
-    },
-    chip: {
-      width: 34,
-      height: 25,
-      borderRadius: 6,
-      backgroundColor: 'rgba(255,255,255,0.35)',
-      padding: 5,
-      justifyContent: 'space-between',
-    },
-    chipLine: {
-      width: '100%',
-      height: 2,
-      borderRadius: 1,
-      backgroundColor: 'rgba(255,255,255,0.75)',
-    },
     contactless: {
       transform: [{ rotate: '90deg' }],
-      marginTop: 4,
     },
     accountCardNumber: {
-      fontSize: 15,
-      fontWeight: '700',
+      fontSize: 15.5,
+      fontWeight: '600',
       color: 'rgba(255,255,255,0.92)',
-      letterSpacing: 1.5,
+      letterSpacing: 1.3,
+      fontVariant: ['tabular-nums'],
     },
     accountCardBottomRow: {
       flexDirection: 'row',
       alignItems: 'flex-end',
       justifyContent: 'space-between',
     },
-    accountCardIdentity: {
+    accountCardName: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: '#ffffff',
       flexShrink: 1,
     },
-    accountCardName: {
-      fontSize: 14.5,
-      fontWeight: '800',
-      color: '#ffffff',
-    },
     accountCardType: {
-      fontSize: 11,
-      fontWeight: '600',
+      fontSize: 9.5,
+      fontWeight: '700',
       color: 'rgba(255,255,255,0.75)',
-      marginTop: 1,
       textTransform: 'uppercase',
-      letterSpacing: 0.4,
+      letterSpacing: 0.6,
+    },
+    bottomLabel: {
+      fontSize: 9,
+      fontWeight: '600',
+      color: 'rgba(255,255,255,0.7)',
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+      marginBottom: 2,
     },
     accountCardBalance: {
-      fontSize: 20,
+      fontSize: 16.5,
       fontWeight: '800',
       color: '#ffffff',
-      letterSpacing: -0.3,
+      letterSpacing: -0.2,
+      fontVariant: ['tabular-nums'],
     },
     addCard: {
       width: 120,
-      height: 162,
-      borderRadius: 20,
+      height: 172,
+      borderRadius: 18,
       borderWidth: 1.5,
       borderColor: colors.borderMuted,
       borderStyle: 'dashed',

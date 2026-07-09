@@ -88,8 +88,8 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       right: 0,
       bottom: 0,
       backgroundColor: colors.surface,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
       paddingHorizontal: 16,
       paddingTop: 10,
       paddingBottom: 28,
@@ -118,7 +118,7 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
     yearChip: {
       paddingHorizontal: 14,
       paddingVertical: 7,
-      borderRadius: 999,
+      borderRadius: 8,
       backgroundColor: colors.background,
       borderWidth: 1,
       borderColor: colors.border,
@@ -143,7 +143,7 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
     monthCell: {
       width: '30%',
       paddingVertical: 16,
-      borderRadius: 14,
+      borderRadius: 10,
       alignItems: 'center',
       backgroundColor: colors.background,
       borderWidth: 1,
