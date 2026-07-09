@@ -36,6 +36,13 @@
       "when": 1783501001297,
       "tag": "0004_chubby_wildside",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1783510000000,
+      "tag": "0005_rename_opening_balance_to_balance",
+      "breakpoints": true
     }
   ]
 }

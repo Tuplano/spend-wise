@@ -10,6 +10,7 @@ import { CategoryIcon } from '@/components/budget/category-icon';
 import { DatePickerModal } from '@/components/budget/date-picker-modal';
 import { SegmentedControl } from '@/components/budget/segmented-control';
 import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
+import { adjustAccountBalance, signedAmount } from '@/db/balance';
 import { db } from '@/db/client';
 import { transactions } from '@/db/schema';
 import { useAccounts } from '@/hooks/use-accounts';
@@ -77,7 +78,8 @@ export default function EditTransactionScreen() {
     setCategoryId(null);
   }
 
-  async function handleSave() {
+  function handleSave() {
+    if (!original) return;
     const amount = Math.round(parseFloat(amountText || '0') * 100);
     const parsed = transactionSchema.safeParse({ categoryId, amount });
     if (!parsed.success) {
@@ -89,17 +91,21 @@ export default function EditTransactionScreen() {
 
     setSaving(true);
     try {
-      await db
-        .update(transactions)
-        .set({
-          categoryId: parsed.data.categoryId,
-          accountId,
-          kind,
-          amount: parsed.data.amount,
-          merchant: note.trim() || category.name,
-          occurredAt,
-        })
-        .where(eq(transactions.id, transactionId));
+      db.transaction((tx) => {
+        tx.update(transactions)
+          .set({
+            categoryId: parsed.data.categoryId,
+            accountId,
+            kind,
+            amount: parsed.data.amount,
+            merchant: note.trim() || category.name,
+            occurredAt,
+          })
+          .where(eq(transactions.id, transactionId))
+          .run();
+        adjustAccountBalance(tx, original.accountId, -signedAmount(original.kind, original.amount));
+        adjustAccountBalance(tx, accountId, signedAmount(kind, parsed.data.amount));
+      });
       router.back();
     } finally {
       setSaving(false);
@@ -107,13 +113,17 @@ export default function EditTransactionScreen() {
   }
 
   function handleDelete() {
+    if (!original) return;
     Alert.alert('Delete transaction?', 'This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: async () => {
-          await db.delete(transactions).where(eq(transactions.id, transactionId));
+        onPress: () => {
+          db.transaction((tx) => {
+            tx.delete(transactions).where(eq(transactions.id, transactionId)).run();
+            adjustAccountBalance(tx, original.accountId, -signedAmount(original.kind, original.amount));
+          });
           router.back();
         },
       },

@@ -9,6 +9,7 @@ import { MonthPickerModal } from '@/components/budget/month-picker-modal';
 import { ProgressBar } from '@/components/budget/progress-bar';
 import { TransactionRow } from '@/components/budget/transaction-row';
 import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
+import { useAccounts } from '@/hooks/use-accounts';
 import { useBudgets } from '@/hooks/use-budgets';
 import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
@@ -29,6 +30,7 @@ export default function DashboardScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const transactions = useTransactions();
   const budgets = useBudgets();
+  const accounts = useAccounts();
   const { formatCents } = useDisplayMoney();
   const displayName = useProfileStore((s) => s.displayName);
   const email = useProfileStore((s) => s.email);
@@ -57,6 +59,8 @@ export default function DashboardScreen() {
     .reduce((sum, t) => sum + t.amount, 0);
   const monthNet = monthIncome - monthSpent;
 
+  const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
+
   const monthBudgetLimit = budgets
     .filter((b) => b.monthKey === selectedMonthKey)
     .reduce((sum, b) => sum + b.limitAmount, 0);
@@ -78,6 +82,10 @@ export default function DashboardScreen() {
           <Pressable style={styles.avatar} onPress={() => router.push('/settings')}>
             <Text style={styles.avatarText}>{initials}</Text>
           </Pressable>
+        </View>
+
+        <View style={styles.balanceSpacing}>
+          <BalanceCard label="Total balance" balance={totalBalance} />
         </View>
 
         <View style={styles.balanceSpacing}>

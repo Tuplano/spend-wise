@@ -8,8 +8,8 @@ import { useThemeColors } from '@/hooks/use-theme-colors';
 type BalanceCardProps = {
   label?: string;
   balance: number;
-  income: number;
-  spent: number;
+  income?: number;
+  spent?: number;
   headerRight?: ReactNode;
 };
 
@@ -25,22 +25,24 @@ export function BalanceCard({ label = 'Total balance', balance, income, spent, h
         {headerRight}
       </View>
       <Text style={styles.balance}>{formatCents(balance)}</Text>
-      <View style={styles.row}>
-        <View style={styles.stat}>
-          <View style={styles.statHeader}>
-            <TrendingUp size={13} color={colors.textOnAccent} strokeWidth={2.6} />
-            <Text style={styles.statLabel}>Income</Text>
+      {income !== undefined && spent !== undefined && (
+        <View style={styles.row}>
+          <View style={styles.stat}>
+            <View style={styles.statHeader}>
+              <TrendingUp size={13} color={colors.textOnAccent} strokeWidth={2.6} />
+              <Text style={styles.statLabel}>Income</Text>
+            </View>
+            <Text style={styles.statValue}>{formatCents(income)}</Text>
           </View>
-          <Text style={styles.statValue}>{formatCents(income)}</Text>
-        </View>
-        <View style={styles.stat}>
-          <View style={styles.statHeader}>
-            <TrendingDown size={13} color={colors.textOnAccent} strokeWidth={2.6} />
-            <Text style={styles.statLabel}>Spent</Text>
+          <View style={styles.stat}>
+            <View style={styles.statHeader}>
+              <TrendingDown size={13} color={colors.textOnAccent} strokeWidth={2.6} />
+              <Text style={styles.statLabel}>Spent</Text>
+            </View>
+            <Text style={styles.statValue}>{formatCents(spent)}</Text>
           </View>
-          <Text style={styles.statValue}>{formatCents(spent)}</Text>
         </View>
-      </View>
+      )}
     </View>
   );
 }

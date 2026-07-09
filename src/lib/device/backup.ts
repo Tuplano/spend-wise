@@ -1,3 +1,4 @@
+import { eq, sql } from 'drizzle-orm';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
@@ -8,7 +9,7 @@ import { useCurrencyStore } from '@/stores/currency-store';
 import { useProfileStore } from '@/stores/profile-store';
 import { type ThemePreference, useThemeStore } from '@/stores/theme-store';
 
-export const BACKUP_SCHEMA_VERSION = 1;
+export const BACKUP_SCHEMA_VERSION = 2;
 
 type SettingsExport = {
   displayName: string;
@@ -25,9 +26,12 @@ type AccountExport = {
   typeId: number;
   color: string;
   accountNumber: string | null;
-  openingBalance: number;
+  balance: number;
   sortOrder: number;
 };
+
+/** Legacy (schemaVersion 1) shape: only captured the opening snapshot, not the running balance. */
+type AccountExportV1 = Omit<AccountExport, 'balance'> & { openingBalance: number };
 
 type CategoryExport = {
   id: number;
@@ -53,9 +57,9 @@ type TransactionExport = {
 
 type BudgetExport = { id: number; categoryId: number; monthKey: string; limitAmount: number };
 
-export type BackupFileV1 = {
+export type BackupFileV2 = {
   app: 'spend-wise';
-  schemaVersion: 1;
+  schemaVersion: 2;
   exportedAt: string;
   data: {
     settings: SettingsExport;
@@ -66,6 +70,14 @@ export type BackupFileV1 = {
     budgets: BudgetExport[];
   };
 };
+
+/** Backups created before accounts.balance became a stored running total. */
+type BackupFileV1 = Omit<BackupFileV2, 'schemaVersion' | 'data'> & {
+  schemaVersion: 1;
+  data: Omit<BackupFileV2['data'], 'accounts'> & { accounts: AccountExportV1[] };
+};
+
+export type BackupFile = BackupFileV1 | BackupFileV2;
 
 function todayStamp() {
   const now = new Date();
@@ -87,7 +99,7 @@ function writeAndShare(fileName: string, content: string, mimeType: string, uti:
   return Sharing.shareAsync(file.uri, { mimeType, UTI: uti });
 }
 
-async function buildBackup(): Promise<BackupFileV1> {
+async function buildBackup(): Promise<BackupFileV2> {
   const accountTypeRows = await db.select().from(accountTypes);
   const accountRows = await db.select().from(accounts);
   const categoryRows = await db.select().from(categories);
@@ -117,7 +129,7 @@ async function buildBackup(): Promise<BackupFileV1> {
         typeId: row.typeId,
         color: row.color,
         accountNumber: row.accountNumber,
-        openingBalance: row.openingBalance,
+        balance: row.balance,
         sortOrder: row.sortOrder,
       })),
       categories: categoryRows.map((row) => ({
@@ -165,7 +177,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-export type BackupValidationResult = { ok: true; data: BackupFileV1 } | { ok: false; error: string };
+export type BackupValidationResult = { ok: true; data: BackupFile } | { ok: false; error: string };
 
 /** Validates a parsed backup file's shape and referential integrity before anything touches the database. */
 export function validateBackup(raw: unknown): BackupValidationResult {
@@ -270,12 +282,12 @@ export function validateBackup(raw: unknown): BackupValidationResult {
     }
   }
 
-  return { ok: true, data: raw as unknown as BackupFileV1 };
+  return { ok: true, data: raw as unknown as BackupFile };
 }
 
 /** Wipes every table and restores it from the backup, preserving original ids, then restores the
  * device-local preferences (name, email, currency, theme) into their respective stores. */
-export async function importBackup(backup: BackupFileV1): Promise<void> {
+export async function importBackup(backup: BackupFile): Promise<void> {
   db.transaction((tx) => {
     tx.delete(transactions).run();
     tx.delete(budgets).run();
@@ -292,7 +304,14 @@ export async function importBackup(backup: BackupFileV1): Promise<void> {
     }
 
     if (backup.data.accounts.length > 0) {
-      tx.insert(accounts).values(backup.data.accounts).run();
+      if (backup.schemaVersion === 1) {
+        // Legacy backups only captured the opening snapshot, not the full running balance.
+        tx.insert(accounts)
+          .values(backup.data.accounts.map(({ openingBalance, ...rest }) => ({ ...rest, balance: openingBalance })))
+          .run();
+      } else {
+        tx.insert(accounts).values(backup.data.accounts).run();
+      }
     }
 
     if (backup.data.transactions.length > 0) {
@@ -309,6 +328,22 @@ export async function importBackup(backup: BackupFileV1): Promise<void> {
 
     if (backup.data.budgets.length > 0) {
       tx.insert(budgets).values(backup.data.budgets).run();
+    }
+
+    if (backup.schemaVersion === 1) {
+      // Roll each account's transaction history forward into the newly-inserted balance,
+      // mirroring the one-time migration that converted opening_balance into balance.
+      for (const account of backup.data.accounts) {
+        const net = backup.data.transactions
+          .filter((t) => t.accountId === account.id)
+          .reduce((sum, t) => sum + (t.kind === 'income' ? t.amount : -t.amount), 0);
+        if (net !== 0) {
+          tx.update(accounts)
+            .set({ balance: sql`${accounts.balance} + ${net}` })
+            .where(eq(accounts.id, account.id))
+            .run();
+        }
+      }
     }
   });
 

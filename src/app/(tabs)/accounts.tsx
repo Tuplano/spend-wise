@@ -10,7 +10,6 @@ import { ACCOUNT_TYPE_ICONS, type AccountTypeIconKey } from '@/constants/account
 import { useAccounts } from '@/hooks/use-accounts';
 import { useDisplayMoney } from '@/hooks/use-display-money';
 import { useThemeColors } from '@/hooks/use-theme-colors';
-import { useTransactions } from '@/hooks/use-transactions';
 
 /** Darkens (negative percent) or lightens (positive) a hex color, for a card's gradient stop. */
 function shade(hex: string, percent: number) {
@@ -38,22 +37,9 @@ export default function AccountsScreen() {
   const colors = useThemeColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const accounts = useAccounts();
-  const transactions = useTransactions();
   const { formatCents } = useDisplayMoney();
 
-  const balanceByAccount = useMemo(() => {
-    const map = new Map<number, number>();
-    for (const a of accounts) {
-      map.set(a.id, a.openingBalance);
-    }
-    for (const t of transactions) {
-      if (t.accountId == null) continue;
-      map.set(t.accountId, (map.get(t.accountId) ?? 0) + (t.kind === 'income' ? t.amount : -t.amount));
-    }
-    return map;
-  }, [accounts, transactions]);
-
-  const totalBalance = accounts.reduce((sum, a) => sum + (balanceByAccount.get(a.id) ?? 0), 0);
+  const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -84,7 +70,7 @@ export default function AccountsScreen() {
               contentContainerStyle={styles.cardRow}
               style={styles.cardScroll}>
               {accounts.map((a) => {
-                const balance = balanceByAccount.get(a.id) ?? 0;
+                const balance = a.balance;
                 const Icon = ACCOUNT_TYPE_ICONS[a.typeIcon as AccountTypeIconKey];
                 return (
                   <LinearGradient
@@ -130,7 +116,7 @@ export default function AccountsScreen() {
             <Text style={styles.sectionLabel}>All accounts</Text>
             <View style={styles.listCard}>
               {accounts.map((a, i) => {
-                const balance = balanceByAccount.get(a.id) ?? 0;
+                const balance = a.balance;
                 return (
                   <View key={a.id} style={[styles.listRow, i < accounts.length - 1 && styles.listRowBorder]}>
                     <CategoryIcon

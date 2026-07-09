@@ -1,19 +1,19 @@
 import { eq } from 'drizzle-orm';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Check, ChevronLeft, Plus, Trash2 } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CategoryIcon } from '@/components/budget/category-icon';
 import { ACCOUNT_COLOR_PRESETS, ACCOUNT_TYPE_ICONS, type AccountTypeIconKey } from '@/constants/accounts';
+import { reconcileAccountBalance } from '@/db/balance';
 import { db } from '@/db/client';
 import { assertAccountDeletable, DeleteBlockedError } from '@/db/guards';
 import { accounts } from '@/db/schema';
 import { useAccounts } from '@/hooks/use-accounts';
 import { useAccountTypes } from '@/hooks/use-account-types';
 import { useThemeColors } from '@/hooks/use-theme-colors';
-import { useTransactions } from '@/hooks/use-transactions';
 import { currencyOption } from '@/lib/money/currency';
 import { BASE_CURRENCY } from '@/lib/money/exchange-rates';
 
@@ -26,27 +26,26 @@ export default function AddAccountScreen() {
   const accountId = id ? Number(id) : null;
   const allAccounts = useAccounts();
   const accountTypes = useAccountTypes();
-  const transactions = useTransactions();
   const editing = useMemo(() => allAccounts.find((a) => a.id === accountId) ?? null, [allAccounts, accountId]);
 
-  /** Net of all transactions already logged against this account — needed to translate the
-   * user-facing current balance back into the stored opening balance on save. */
-  const accountNetTransactions = useMemo(() => {
-    if (!editing) return 0;
-    return transactions
-      .filter((t) => t.accountId === editing.id)
-      .reduce((sum, t) => sum + (t.kind === 'income' ? t.amount : -t.amount), 0);
-  }, [transactions, editing]);
-
-  const [name, setName] = useState(editing?.name ?? '');
-  const [accountNumber, setAccountNumber] = useState(editing?.accountNumber ?? '');
-  const [balanceText, setBalanceText] = useState(
-    editing ? ((editing.openingBalance + accountNetTransactions) / 100).toString() : ''
-  );
-  const [typeId, setTypeId] = useState<number | null>(editing?.typeId ?? null);
-  const [color, setColor] = useState(editing?.color ?? ACCOUNT_COLOR_PRESETS[0]);
+  const [name, setName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [balanceText, setBalanceText] = useState('');
+  const [typeId, setTypeId] = useState<number | null>(null);
+  const [color, setColor] = useState(ACCOUNT_COLOR_PRESETS[0]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const loadedRef = useRef(false);
+  useEffect(() => {
+    if (!editing || loadedRef.current) return;
+    loadedRef.current = true;
+    setName(editing.name);
+    setAccountNumber(editing.accountNumber ?? '');
+    setBalanceText((editing.balance / 100).toString());
+    setTypeId(editing.typeId);
+    setColor(editing.color);
+  }, [editing]);
 
   const selectedType = useMemo(() => accountTypes.find((t) => t.id === typeId) ?? null, [accountTypes, typeId]);
 
@@ -62,21 +61,23 @@ export default function AddAccountScreen() {
     }
 
     const trimmedNumber = accountNumber.trim() || null;
-    const balanceCents = Math.round(parseFloat(balanceText || '0') * 100);
-    const openingBalance = balanceCents - accountNetTransactions;
+    const balance = Math.round(parseFloat(balanceText || '0') * 100);
 
     setSaving(true);
     try {
       if (editing) {
-        await db
-          .update(accounts)
-          .set({ name: trimmed, typeId, color, accountNumber: trimmedNumber, openingBalance })
-          .where(eq(accounts.id, editing.id));
+        db.transaction((tx) => {
+          tx.update(accounts)
+            .set({ name: trimmed, typeId, color, accountNumber: trimmedNumber })
+            .where(eq(accounts.id, editing.id))
+            .run();
+          reconcileAccountBalance(tx, editing.id, balance, editing.balance);
+        });
       } else {
         const sortOrder = allAccounts.reduce((max, a) => Math.max(max, a.sortOrder), 0) + 1;
         await db
           .insert(accounts)
-          .values({ name: trimmed, typeId, color, accountNumber: trimmedNumber, openingBalance, sortOrder });
+          .values({ name: trimmed, typeId, color, accountNumber: trimmedNumber, balance, sortOrder });
       }
       router.back();
     } finally {

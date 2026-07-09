@@ -9,6 +9,7 @@ import { CategoryIcon } from '@/components/budget/category-icon';
 import { DatePickerModal } from '@/components/budget/date-picker-modal';
 import { SegmentedControl } from '@/components/budget/segmented-control';
 import { CATEGORY_ICONS, type CategoryIconKey } from '@/constants/categories';
+import { adjustAccountBalance, signedAmount } from '@/db/balance';
 import { db } from '@/db/client';
 import { transactions } from '@/db/schema';
 import { useAccounts } from '@/hooks/use-accounts';
@@ -53,7 +54,7 @@ export default function AddTransactionScreen() {
     setCategoryId(null);
   }
 
-  async function handleSave() {
+  function handleSave() {
     const amount = Math.round(parseFloat(amountText || '0') * 100);
     const parsed = transactionSchema.safeParse({ categoryId, amount });
     if (!parsed.success) {
@@ -65,13 +66,18 @@ export default function AddTransactionScreen() {
 
     setSaving(true);
     try {
-      await db.insert(transactions).values({
-        categoryId: parsed.data.categoryId,
-        accountId,
-        kind,
-        amount: parsed.data.amount,
-        merchant: note.trim() || category.name,
-        occurredAt,
+      db.transaction((tx) => {
+        tx.insert(transactions)
+          .values({
+            categoryId: parsed.data.categoryId,
+            accountId,
+            kind,
+            amount: parsed.data.amount,
+            merchant: note.trim() || category.name,
+            occurredAt,
+          })
+          .run();
+        adjustAccountBalance(tx, accountId, signedAmount(kind, parsed.data.amount));
       });
       router.back();
     } finally {
