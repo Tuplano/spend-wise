@@ -10,10 +10,8 @@ import {
   BarChart3,
   Home,
   Plus,
-  Receipt,
   Settings,
   Target,
-  Wallet,
   type LucideIcon,
 } from "lucide-react-native";
 import { useMemo } from "react";
@@ -55,40 +53,54 @@ export default function TabsLayout() {
   return (
     <Tabs>
       <TabSlot />
-      <TabList asChild>
-        <View
-          style={StyleSheet.flatten([
-            styles.bar,
-            { paddingBottom: Math.max(insets.bottom, 10) },
-          ])}
-        >
-          <TabTrigger name="index" href="/" asChild>
-            <TabIcon icon={Home} label="Home" />
-          </TabTrigger>
-          <TabTrigger name="activity" href="/activity" asChild>
-            <TabIcon icon={Receipt} label="Activity" />
-          </TabTrigger>
-          <TabTrigger name="budgets" href="/budgets" asChild>
-            <TabIcon icon={Target} label="Budgets" />
-          </TabTrigger>
-          <View style={styles.fabSlot}>
-            <Pressable
-              style={styles.fab}
-              onPress={() => router.push("/add-transaction")}
-            >
-              <Plus size={26} color={colors.textOnAccent} strokeWidth={2.4} />
-            </Pressable>
-          </View>
-          <TabTrigger name="accounts" href="/accounts" asChild>
-            <TabIcon icon={Wallet} label="Accounts" />
-          </TabTrigger>
-          <TabTrigger name="insights" href="/insights" asChild>
-            <TabIcon icon={BarChart3} label="Insights" />
-          </TabTrigger>
-          <TabTrigger name="settings" href="/settings" asChild>
-            <TabIcon icon={Settings} label="Settings" />
-          </TabTrigger>
+      <View
+        style={StyleSheet.flatten([
+          styles.bar,
+          { paddingBottom: Math.max(insets.bottom, 10) },
+        ])}
+      >
+        <TabTrigger name="index" asChild>
+          <TabIcon icon={Home} label="Home" />
+        </TabTrigger>
+        <TabTrigger name="budgets" asChild>
+          <TabIcon icon={Target} label="Budgets" />
+        </TabTrigger>
+        <View style={styles.fabSlot}>
+          <Pressable
+            style={styles.fab}
+            onPress={() => router.push("/add-transaction")}
+          >
+            <Plus size={26} color={colors.textOnAccent} strokeWidth={2.4} />
+          </Pressable>
         </View>
+        <TabTrigger name="insights" asChild>
+          <TabIcon icon={BarChart3} label="Insights" />
+        </TabTrigger>
+        <TabTrigger name="settings" asChild>
+          <TabIcon icon={Settings} label="Settings" />
+        </TabTrigger>
+      </View>
+      {/* Accounts and Activity have no visible tab button; they're reached by swiping on Home
+          and stay registered here so router.push("/accounts" | "/activity") can still target them. */}
+      <TabList style={styles.hiddenList}>
+        <TabTrigger name="index" href="/">
+          <Text>Home</Text>
+        </TabTrigger>
+        <TabTrigger name="activity" href="/activity">
+          <Text>Activity</Text>
+        </TabTrigger>
+        <TabTrigger name="budgets" href="/budgets">
+          <Text>Budgets</Text>
+        </TabTrigger>
+        <TabTrigger name="accounts" href="/accounts">
+          <Text>Accounts</Text>
+        </TabTrigger>
+        <TabTrigger name="insights" href="/insights">
+          <Text>Insights</Text>
+        </TabTrigger>
+        <TabTrigger name="settings" href="/settings">
+          <Text>Settings</Text>
+        </TabTrigger>
       </TabList>
     </Tabs>
   );
@@ -103,6 +115,9 @@ function createStyles(colors: ReturnType<typeof useThemeColors>) {
       borderTopWidth: 1,
       borderTopColor: colors.track,
       paddingTop: 10,
+    },
+    hiddenList: {
+      display: "none",
     },
     tabItem: {
       flex: 1,

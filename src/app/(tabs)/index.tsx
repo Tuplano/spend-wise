@@ -2,6 +2,8 @@ import { router } from 'expo-router';
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BalanceCard } from '@/components/budget/balance-card';
@@ -69,93 +71,111 @@ export default function DashboardScreen() {
 
   const recent = thisMonthTransactions.slice(0, 4);
 
+  // Swipe right -> Accounts, swipe left -> Activity. The offset thresholds require a clearly
+  // horizontal drag before activating, so vertical scrolling in the ScrollView below is unaffected.
+  // onEnd runs as a UI-thread worklet, so router.push must be marshalled back to the JS thread.
+  const goToAccounts = () => router.push('/accounts');
+  const goToActivity = () => router.push('/activity');
+  const swipeGesture = Gesture.Pan()
+    .activeOffsetX([-20, 20])
+    .failOffsetY([-15, 15])
+    .onEnd((e) => {
+      if (e.translationX > 60) {
+        runOnJS(goToAccounts)();
+      } else if (e.translationX < -60) {
+        runOnJS(goToActivity)();
+      }
+    });
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.headerRow}>
-          <View style={styles.greetingBlock}>
-            <Text style={styles.greeting}>
-              {getGreeting()} {displayName}
-            </Text>
-            {!!email && <Text style={styles.greetingEmail}>{email}</Text>}
+    <GestureDetector gesture={swipeGesture}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.headerRow}>
+            <View style={styles.greetingBlock}>
+              <Text style={styles.greeting}>
+                {getGreeting()} {displayName}
+              </Text>
+              {!!email && <Text style={styles.greetingEmail}>{email}</Text>}
+            </View>
+            <Pressable style={styles.avatar} onPress={() => router.push('/settings')}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </Pressable>
           </View>
-          <Pressable style={styles.avatar} onPress={() => router.push('/settings')}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </Pressable>
-        </View>
 
-        <View style={styles.balanceSpacing}>
-          <BalanceCard label="Total balance" balance={totalBalance} />
-        </View>
-
-        <View style={styles.balanceSpacing}>
-          <BalanceCard
-            label={`${monthLabel(selectedMonthKey)} balance`}
-            balance={monthNet}
-            income={monthIncome}
-            spent={monthSpent}
-            headerRight={
-              <View style={styles.monthSwitcher}>
-                <Pressable onPress={prevMonth} hitSlop={8} style={styles.monthArrow}>
-                  <ChevronLeft size={14} color={colors.textOnAccent} strokeWidth={2.4} />
-                </Pressable>
-                <Pressable style={styles.monthSwitcherLabelButton} onPress={() => setMonthPickerOpen(true)} hitSlop={6}>
-                  <CalendarDays size={12} color={colors.textOnAccent} strokeWidth={2.2} />
-                  <Text style={styles.monthSwitcherLabel}>{monthLabel(selectedMonthKey)}</Text>
-                </Pressable>
-                <Pressable onPress={nextMonth} hitSlop={8} style={styles.monthArrow}>
-                  <ChevronRight size={14} color={colors.textOnAccent} strokeWidth={2.4} />
-                </Pressable>
-              </View>
-            }
-          />
-        </View>
-
-        <View style={styles.budgetCard}>
-          <View style={styles.budgetHeader}>
-            <Text style={styles.budgetTitle}>{monthLabel(selectedMonthKey)} budget</Text>
-            <Text style={styles.budgetLeft}>{formatCents(Math.max(budgetLeft, 0))} left</Text>
+          <View style={styles.balanceSpacing}>
+            <BalanceCard label="Total balance" balance={totalBalance} />
           </View>
-          <ProgressBar progress={budgetProgress} color={colors.accent} />
-          <View style={styles.budgetFooter}>
-            <Text style={styles.budgetFooterText}>{formatCents(monthSpent)} spent</Text>
-            <Text style={styles.budgetFooterText}>{formatCents(monthBudgetLimit)} limit</Text>
-          </View>
-        </View>
 
-        <View style={styles.recentHeader}>
-          <Text style={styles.recentTitle}>Recent in {monthLabel(selectedMonthKey)}</Text>
-          <Pressable onPress={() => router.push('/activity')}>
-            <Text style={styles.seeAll}>See all</Text>
-          </Pressable>
-        </View>
-
-        <View>
-          {recent.map((t) => (
-            <TransactionRow
-              key={t.id}
-              icon={CATEGORY_ICONS[t.categoryIcon as CategoryIconKey]}
-              color={t.categoryColor}
-              bgColor={t.categoryBgColor}
-              title={t.merchant}
-              subtitle={`${t.categoryName} · ${formatTime(t.occurredAt)}`}
-              amount={t.amount}
-              kind={t.kind}
+          <View style={styles.balanceSpacing}>
+            <BalanceCard
+              label={`${monthLabel(selectedMonthKey)} balance`}
+              balance={monthNet}
+              income={monthIncome}
+              spent={monthSpent}
+              headerRight={
+                <View style={styles.monthSwitcher}>
+                  <Pressable onPress={prevMonth} hitSlop={8} style={styles.monthArrow}>
+                    <ChevronLeft size={14} color={colors.textOnAccent} strokeWidth={2.4} />
+                  </Pressable>
+                  <Pressable style={styles.monthSwitcherLabelButton} onPress={() => setMonthPickerOpen(true)} hitSlop={6}>
+                    <CalendarDays size={12} color={colors.textOnAccent} strokeWidth={2.2} />
+                    <Text style={styles.monthSwitcherLabel}>{monthLabel(selectedMonthKey)}</Text>
+                  </Pressable>
+                  <Pressable onPress={nextMonth} hitSlop={8} style={styles.monthArrow}>
+                    <ChevronRight size={14} color={colors.textOnAccent} strokeWidth={2.4} />
+                  </Pressable>
+                </View>
+              }
             />
-          ))}
-          {recent.length === 0 && (
-            <Text style={styles.emptyText}>No transactions in {monthLabel(selectedMonthKey)}</Text>
-          )}
-        </View>
-      </ScrollView>
+          </View>
 
-      <MonthPickerModal
-        visible={monthPickerOpen}
-        selectedMonthKey={selectedMonthKey}
-        onSelect={setMonthKey}
-        onClose={() => setMonthPickerOpen(false)}
-      />
-    </SafeAreaView>
+          <View style={styles.budgetCard}>
+            <View style={styles.budgetHeader}>
+              <Text style={styles.budgetTitle}>{monthLabel(selectedMonthKey)} budget</Text>
+              <Text style={styles.budgetLeft}>{formatCents(Math.max(budgetLeft, 0))} left</Text>
+            </View>
+            <ProgressBar progress={budgetProgress} color={colors.accent} />
+            <View style={styles.budgetFooter}>
+              <Text style={styles.budgetFooterText}>{formatCents(monthSpent)} spent</Text>
+              <Text style={styles.budgetFooterText}>{formatCents(monthBudgetLimit)} limit</Text>
+            </View>
+          </View>
+
+          <View style={styles.recentHeader}>
+            <Text style={styles.recentTitle}>Recent in {monthLabel(selectedMonthKey)}</Text>
+            <Pressable onPress={() => router.push('/activity')}>
+              <Text style={styles.seeAll}>See all</Text>
+            </Pressable>
+          </View>
+
+          <View>
+            {recent.map((t) => (
+              <TransactionRow
+                key={t.id}
+                icon={CATEGORY_ICONS[t.categoryIcon as CategoryIconKey]}
+                color={t.categoryColor}
+                bgColor={t.categoryBgColor}
+                title={t.merchant}
+                subtitle={`${t.categoryName} · ${formatTime(t.occurredAt)}`}
+                amount={t.amount}
+                kind={t.kind}
+              />
+            ))}
+            {recent.length === 0 && (
+              <Text style={styles.emptyText}>No transactions in {monthLabel(selectedMonthKey)}</Text>
+            )}
+          </View>
+        </ScrollView>
+
+        <MonthPickerModal
+          visible={monthPickerOpen}
+          selectedMonthKey={selectedMonthKey}
+          onSelect={setMonthKey}
+          onClose={() => setMonthPickerOpen(false)}
+        />
+      </SafeAreaView>
+    </GestureDetector>
   );
 }
 
